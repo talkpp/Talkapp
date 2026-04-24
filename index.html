@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TalkZone</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -14,28 +13,23 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial;height:100vh}
 
-/* LOGIN */
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
 #loginBox{background:#fff;padding:25px;border-radius:10px;width:300px}
 #login input{width:100%;padding:10px;margin:10px 0}
 #login button{width:100%;padding:10px;background:#667eea;color:#fff;border:none}
 
-/* APP */
 #app{display:none;height:100vh;display:flex}
 
-/* SIDEBAR */
 #sidebar{width:30%;background:#f0f2f5;overflow:auto}
 .user{padding:15px;border-bottom:1px solid #ddd;cursor:pointer}
 .user:hover{background:#ddd}
 
-/* CHAT */
 #chat{flex:1;display:flex;flex-direction:column}
 #messages{flex:1;padding:10px;overflow:auto}
 .msg{margin:5px 0;padding:8px;border-radius:10px;max-width:60%}
 .me{background:#dcf8c6;margin-left:auto}
 .other{background:#fff}
 
-/* INPUT */
 #input{display:flex;padding:10px;border-top:1px solid #ccc}
 #input input{flex:1;padding:10px}
 #input button{padding:10px}
@@ -44,7 +38,6 @@ body{font-family:Arial;height:100vh}
 
 <body>
 
-<!-- LOGIN -->
 <div id="login">
   <div id="loginBox">
     <h2>TalkZone</h2>
@@ -54,7 +47,6 @@ body{font-family:Arial;height:100vh}
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
   <div id="sidebar"></div>
 
@@ -68,8 +60,6 @@ body{font-family:Arial;height:100vh}
 </div>
 
 <script>
-
-// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -83,9 +73,9 @@ const db = firebase.firestore();
 let ME=null;
 let currentChat=null;
 let unsub=null;
+let username="";
 
-// LOGIN
-function login(){
+async function login(){
   let u=document.getElementById("u").value.trim().toLowerCase();
   let p=document.getElementById("p").value;
 
@@ -94,51 +84,57 @@ function login(){
     return;
   }
 
+  username=u;
   let email=u+"@app.com";
 
-  auth.signInWithEmailAndPassword(email,p)
-  .catch(async ()=>{
+  try{
+    await auth.signInWithEmailAndPassword(email,p);
+  }catch{
     let cred=await auth.createUserWithEmailAndPassword(email,p);
-
-    await db.collection("users").doc(cred.user.uid).set({
-      name:u
+    await db.collection("users").doc(username).set({
+      name:username,
+      uid:cred.user.uid
     });
-  });
+  }
 }
 
-// AUTH STATE
-auth.onAuthStateChanged(user=>{
+auth.onAuthStateChanged(async user=>{
   if(user){
     ME=user;
     document.getElementById("login").style.display="none";
     document.getElementById("app").style.display="flex";
+
+    if(username){
+      await db.collection("users").doc(username).set({
+        name:username,
+        uid:user.uid
+      },{merge:true});
+    }
+
     loadUsers();
   }
 });
 
-// LOAD USERS
 function loadUsers(){
   db.collection("users").onSnapshot(snap=>{
     let box=document.getElementById("sidebar");
     box.innerHTML="";
 
     snap.forEach(d=>{
-      if(d.id===ME.uid) return;
-
       let u=d.data();
+      if(u.uid===ME.uid) return;
 
       let div=document.createElement("div");
       div.className="user";
       div.innerText=u.name;
 
-      div.onclick=()=>openChat(d.id,u.name);
+      div.onclick=()=>openChat(u.uid,u.name);
       box.appendChild(div);
     });
   });
 }
 
-// OPEN CHAT
-function openChat(uid,name){
+function openChat(uid){
   currentChat=[ME.uid,uid].sort().join("_");
 
   if(unsub) unsub();
@@ -153,11 +149,9 @@ function openChat(uid,name){
 
       snap.forEach(d=>{
         let m=d.data();
-
         let div=document.createElement("div");
         div.className="msg "+(m.uid===ME.uid?"me":"other");
         div.innerText=m.text;
-
         box.appendChild(div);
       });
 
@@ -165,7 +159,6 @@ function openChat(uid,name){
     });
 }
 
-// SEND MESSAGE
 async function send(){
   let input=document.getElementById("msg");
   let text=input.value.trim();
@@ -192,7 +185,6 @@ async function send(){
     alert("Error sending message");
   }
 }
-
 </script>
 
 </body>
