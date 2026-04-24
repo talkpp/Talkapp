@@ -60,6 +60,7 @@ body{font-family:Arial;height:100vh}
 </div>
 
 <script>
+// FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -73,8 +74,8 @@ const db = firebase.firestore();
 let ME=null;
 let currentChat=null;
 let unsub=null;
-let username="";
 
+// LOGIN / SIGNUP (FIXED)
 async function login(){
   let u=document.getElementById("u").value.trim().toLowerCase();
   let p=document.getElementById("p").value;
@@ -84,37 +85,44 @@ async function login(){
     return;
   }
 
-  username=u;
   let email=u+"@app.com";
 
   try{
+    // LOGIN
     await auth.signInWithEmailAndPassword(email,p);
-  }catch{
-    let cred=await auth.createUserWithEmailAndPassword(email,p);
-    await db.collection("users").doc(username).set({
-      name:username,
-      uid:cred.user.uid
-    });
+
+  }catch(e){
+
+    if(e.code==="auth/user-not-found"){
+      // SIGNUP
+      let cred=await auth.createUserWithEmailAndPassword(email,p);
+
+      // ✅ UID BASED SAVE (NO DUPLICATE)
+      await db.collection("users").doc(cred.user.uid).set({
+        name:u,
+        uid:cred.user.uid
+      });
+
+    }else{
+      alert("Wrong password ❌");
+    }
   }
 }
 
-auth.onAuthStateChanged(async user=>{
+// AUTH STATE
+auth.onAuthStateChanged(user=>{
   if(user){
     ME=user;
     document.getElementById("login").style.display="none";
     document.getElementById("app").style.display="flex";
-
-    if(username){
-      await db.collection("users").doc(username).set({
-        name:username,
-        uid:user.uid
-      },{merge:true});
-    }
-
     loadUsers();
+  }else{
+    document.getElementById("login").style.display="flex";
+    document.getElementById("app").style.display="none";
   }
 });
 
+// LOAD USERS
 function loadUsers(){
   db.collection("users").onSnapshot(snap=>{
     let box=document.getElementById("sidebar");
@@ -128,12 +136,13 @@ function loadUsers(){
       div.className="user";
       div.innerText=u.name;
 
-      div.onclick=()=>openChat(u.uid,u.name);
+      div.onclick=()=>openChat(u.uid);
       box.appendChild(div);
     });
   });
 }
 
+// OPEN CHAT
 function openChat(uid){
   currentChat=[ME.uid,uid].sort().join("_");
 
@@ -159,31 +168,27 @@ function openChat(uid){
     });
 }
 
+// SEND MESSAGE
 async function send(){
   let input=document.getElementById("msg");
   let text=input.value.trim();
 
   if(!text || !currentChat) return;
 
-  try{
-    await db.collection("chats").doc(currentChat).set({
-      users: currentChat.split("_")
-    },{merge:true});
+  await db.collection("chats").doc(currentChat).set({
+    users: currentChat.split("_")
+  },{merge:true});
 
-    await db.collection("chats")
-      .doc(currentChat)
-      .collection("messages")
-      .add({
-        text:text,
-        uid:ME.uid,
-        time: firebase.firestore.FieldValue.serverTimestamp()
-      });
+  await db.collection("chats")
+    .doc(currentChat)
+    .collection("messages")
+    .add({
+      text:text,
+      uid:ME.uid,
+      time: firebase.firestore.FieldValue.serverTimestamp()
+    });
 
-    input.value="";
-  }catch(e){
-    console.error(e);
-    alert("Error sending message");
-  }
+  input.value="";
 }
 </script>
 
