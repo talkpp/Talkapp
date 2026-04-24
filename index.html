@@ -3,118 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TalkZone Pro</title>
+<title>TalkZone</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#0b141a;color:white}
-#app{display:flex;height:100vh}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial;height:100vh}
 
-#sidebar{width:30%;background:#111b21;overflow-y:auto}
-.header{padding:15px;background:#202c33}
-.user{padding:15px;border-bottom:1px solid #222;cursor:pointer}
-.user:hover{background:#202c33}
+/* LOGIN */
+#login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
+#loginBox{background:#fff;padding:25px;border-radius:10px;width:300px}
+#login input{width:100%;padding:10px;margin:10px 0}
+#login button{width:100%;padding:10px;background:#667eea;color:#fff;border:none}
 
-#chatBox{width:70%;display:flex;flex-direction:column}
-#chatHeader{padding:15px;background:#202c33}
-#messages{flex:1;overflow-y:auto;padding:15px}
+/* APP */
+#app{display:none;height:100vh;display:flex}
 
-.msg{margin:8px 0;padding:10px;border-radius:8px;max-width:60%}
-.me{background:#005c4b;margin-left:auto}
-.other{background:#202c33}
+/* SIDEBAR */
+#sidebar{width:30%;background:#f0f2f5;overflow:auto}
+.user{padding:15px;border-bottom:1px solid #ddd;cursor:pointer}
+.user:hover{background:#ddd}
 
-#inputBox{display:flex;padding:10px;background:#202c33}
-#inputBox input{flex:1;padding:10px;border:none;border-radius:8px}
-#inputBox button{margin-left:10px;padding:10px;border:none;border-radius:8px;background:#00a884;color:white}
+/* CHAT */
+#chat{flex:1;display:flex;flex-direction:column}
+#messages{flex:1;padding:10px;overflow:auto}
+.msg{margin:5px 0;padding:8px;border-radius:10px;max-width:60%}
+.me{background:#dcf8c6;margin-left:auto}
+.other{background:#fff}
+
+/* INPUT */
+#input{display:flex;padding:10px;border-top:1px solid #ccc}
+#input input{flex:1;padding:10px}
+#input button{padding:10px}
 </style>
 </head>
 
 <body>
 
-<div id="login" style="padding:20px">
-  <h2>TalkZone</h2>
-  <input id="u" placeholder="Username"><br><br>
-  <input id="p" type="password" placeholder="Password"><br><br>
-  <button onclick="login()">Login / Signup</button>
+<!-- LOGIN -->
+<div id="login">
+  <div id="loginBox">
+    <h2>TalkZone</h2>
+    <input id="u" placeholder="Username (min 3)">
+    <input id="p" type="password" placeholder="Password (min 6)">
+    <button onclick="login()">Login / Signup</button>
+  </div>
 </div>
 
-<div id="app" style="display:none">
+<!-- APP -->
+<div id="app">
+  <div id="sidebar"></div>
 
-  <div id="sidebar">
-    <div class="header">Users</div>
-    <div id="users"></div>
-  </div>
-
-  <div id="chatBox">
-    <div id="chatHeader">Select user</div>
+  <div id="chat">
     <div id="messages"></div>
-
-    <div id="inputBox">
-      <input id="msgInput" placeholder="Type message...">
+    <div id="input">
+      <input id="msg" placeholder="Type message">
       <button onclick="send()">Send</button>
     </div>
   </div>
-
 </div>
 
-<!-- ✅ MODULAR FIREBASE SDK -->
-<script type="module">
+<script>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, orderBy } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-// ✅ YOUR CONFIG ADDED
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
-  databaseURL: "https://talkzone-b3488-default-rtdb.firebaseio.com",
-  projectId: "talkzone-b3488",
-  storageBucket: "talkzone-b3488.firebasestorage.app",
-  messagingSenderId: "526945974843",
-  appId: "1:526945974843:web:997fb419c944ae9c1fba1e",
-  measurementId: "G-YYT58TN5CB"
+  projectId: "talkzone-b3488"
 };
 
-// INIT
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 let ME=null;
 let currentChat=null;
-let unsubscribe=null;
+let unsub=null;
 
 // LOGIN
-window.login = async function(){
+function login(){
   let u=document.getElementById("u").value.trim().toLowerCase();
   let p=document.getElementById("p").value;
 
-  if(!u || u.length<3){
-    alert("Username 3+ required"); return;
-  }
-  if(!p || p.length<6){
-    alert("Password 6+ required"); return;
+  if(u.length<3 || p.length<6){
+    alert("Invalid input");
+    return;
   }
 
-  let email=u+"@chat.com";
+  let email=u+"@app.com";
 
-  try{
-    await signInWithEmailAndPassword(auth,email,p);
-  }catch{
-    let cred=await createUserWithEmailAndPassword(auth,email,p);
+  auth.signInWithEmailAndPassword(email,p)
+  .catch(async ()=>{
+    let cred=await auth.createUserWithEmailAndPassword(email,p);
 
-    await setDoc(doc(db,"users",cred.user.uid),{
-      name:u,
-      uid:cred.user.uid
+    await db.collection("users").doc(cred.user.uid).set({
+      name:u
     });
-  }
+  });
 }
 
-// AUTH
-onAuthStateChanged(auth,user=>{
+// AUTH STATE
+auth.onAuthStateChanged(user=>{
   if(user){
     ME=user;
     document.getElementById("login").style.display="none";
@@ -125,67 +118,79 @@ onAuthStateChanged(auth,user=>{
 
 // LOAD USERS
 function loadUsers(){
-  onSnapshot(collection(db,"users"),snap=>{
-    let box=document.getElementById("users");
+  db.collection("users").onSnapshot(snap=>{
+    let box=document.getElementById("sidebar");
     box.innerHTML="";
 
     snap.forEach(d=>{
+      if(d.id===ME.uid) return;
+
       let u=d.data();
-      if(u.uid===ME.uid) return;
 
       let div=document.createElement("div");
       div.className="user";
       div.innerText=u.name;
 
-      div.onclick=()=>openChat(u);
-
+      div.onclick=()=>openChat(d.id,u.name);
       box.appendChild(div);
     });
   });
 }
 
 // OPEN CHAT
-function openChat(user){
-  currentChat=[ME.uid,user.uid].sort().join("_");
-  document.getElementById("chatHeader").innerText=user.name;
+function openChat(uid,name){
+  currentChat=[ME.uid,uid].sort().join("_");
 
-  if(unsubscribe) unsubscribe();
+  if(unsub) unsub();
 
-  const q = query(
-    collection(db,"chats",currentChat,"messages"),
-    orderBy("time")
-  );
+  unsub=db.collection("chats")
+    .doc(currentChat)
+    .collection("messages")
+    .orderBy("time")
+    .onSnapshot(snap=>{
+      let box=document.getElementById("messages");
+      box.innerHTML="";
 
-  unsubscribe = onSnapshot(q,snap=>{
-    let box=document.getElementById("messages");
-    box.innerHTML="";
+      snap.forEach(d=>{
+        let m=d.data();
 
-    snap.forEach(d=>{
-      let m=d.data();
+        let div=document.createElement("div");
+        div.className="msg "+(m.uid===ME.uid?"me":"other");
+        div.innerText=m.text;
 
-      let div=document.createElement("div");
-      div.className="msg " + (m.uid===ME.uid?"me":"other");
-      div.innerText=m.text;
+        box.appendChild(div);
+      });
 
-      box.appendChild(div);
+      box.scrollTop=box.scrollHeight;
     });
-
-    box.scrollTop=box.scrollHeight;
-  });
 }
 
-// SEND
-window.send = async function(){
-  let text=document.getElementById("msgInput").value;
+// SEND MESSAGE
+async function send(){
+  let input=document.getElementById("msg");
+  let text=input.value.trim();
+
   if(!text || !currentChat) return;
 
-  await addDoc(collection(db,"chats",currentChat,"messages"),{
-    text:text,
-    uid:ME.uid,
-    time:Date.now()
-  });
+  try{
+    await db.collection("chats").doc(currentChat).set({
+      users: currentChat.split("_")
+    },{merge:true});
 
-  document.getElementById("msgInput").value="";
+    await db.collection("chats")
+      .doc(currentChat)
+      .collection("messages")
+      .add({
+        text:text,
+        uid:ME.uid,
+        time: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+    input.value="";
+  }catch(e){
+    console.error(e);
+    alert("Error sending message");
+  }
 }
 
 </script>
