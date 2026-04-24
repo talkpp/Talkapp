@@ -1,76 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TalkZone Chat Application</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        #chat { margin: 20px; }
-        .message { margin: 5px 0; }
-    </style>
-</head>
-<body>
-    <div id="chat">
-        <h2>TalkZone Chat Application</h2>
-        <div id="messages"></div>
-        <input type="text" id="messageInput" placeholder="Enter your message...">
-        <button id="sendButton">Send</button>
-    </div>
-
+    <title>TalkApp</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js"></script>
     <script>
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
             projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID",
-            measurementId: "YOUR_MEASUREMENT_ID"
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.getAuth();
-        const db = firebase.getFirestore();
+        const auth = firebase.auth(app);
 
-        // Sign in user
-        auth.signInAnonymously().catch((error) => {
-            console.error("Error signing in: ", error);
-        });
-
-        // Send message
-        document.getElementById('sendButton').addEventListener('click', function() {
-            const messageInput = document.getElementById('messageInput');
-            const message = messageInput.value;
-            messageInput.value = '';
-
-            db.collection('messages').add({
-                text: message,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                console.log('Message sent!');
-            }).catch((error) => {
-                console.error('Error sending message: ', error);
-            });
-        });
-
-        // Listen for messages
-        db.collection('messages').orderBy('timestamp').onSnapshot((snapshot) => {
-            const messagesDiv = document.getElementById('messages');
-            messagesDiv.innerHTML = '';
-            snapshot.forEach((doc) => {
-                const message = doc.data().text;
-                const messageElement = document.createElement('div');
-                messageElement.classList.add('message');
-                messageElement.textContent = message;
-                messagesDiv.appendChild(messageElement);
-            });
-        });
+        // Example usage of Firebase authentication methods
+        function signIn() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    console.log('Signed in:', userCredential.user);
+                })
+                .catch((error) => {
+                    console.error('Error signing in:', error);
+                });
+        }
     </script>
+</head>
+<body>
+    <h1>Welcome to TalkApp</h1>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="signIn()">Sign In</button>
 </body>
 </html>
