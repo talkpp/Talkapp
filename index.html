@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TalkApp</title>
+<title>TalkApp Pro</title>
 
 <style>
 body{margin:0;font-family:sans-serif;background:#f0f2f5}
@@ -35,7 +35,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 <div id="login">
   <div id="box">
     <h2>TalkApp</h2>
-    <button id="googleBtn">Continue with Google</button>
+    <button id="googleBtn" style="padding:12px;width:100%">Continue with Google</button>
   </div>
 </div>
 
@@ -63,7 +63,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
   <div class="header">
     <span id="backBtn">⬅</span> Search
   </div>
-  <input id="searchInput" placeholder="Search username">
+  <input id="searchInput" placeholder="Search user...">
   <div id="userList"></div>
 </div>
 
@@ -72,6 +72,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
   <div class="header">
     <span id="backBtn2">⬅</span>
     <span id="chatName"></span>
+    <button id="blockBtn">Block</button>
   </div>
 
   <div id="status"></div>
@@ -79,7 +80,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
   <div id="messages"></div>
 
   <div id="input">
-    <input id="msg">
+    <input id="msg" placeholder="Type...">
     <button id="sendBtn">Send</button>
   </div>
 </div>
@@ -88,7 +89,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, orderBy, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCz0Bwl9Vz79DNOnFN4t9TaEKtKKUL5m8o",
@@ -100,10 +101,10 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-let ME,currentUser,currentChat,unsub;
+let ME,currentUser,currentChat,unsub=null;
 
 // LOGIN
-document.getElementById("googleBtn").onclick = async()=>{
+googleBtn.onclick = async()=>{
   try{
     await signInWithPopup(auth,new GoogleAuthProvider());
   }catch(e){
@@ -111,7 +112,7 @@ document.getElementById("googleBtn").onclick = async()=>{
   }
 };
 
-// AUTH STATE
+// AUTH FLOW
 onAuthStateChanged(auth, async user=>{
   if(user){
     ME=user;
@@ -123,6 +124,7 @@ onAuthStateChanged(auth, async user=>{
       await setDoc(ref,{
         name:"",
         uid:user.uid,
+        blocked:[],
         lastSeen:Date.now()
       });
       show("usernameScreen");
@@ -132,25 +134,40 @@ onAuthStateChanged(auth, async user=>{
     if(!snap.data().name){
       show("usernameScreen");
     }else{
+      document.getElementById("login").style.display="none";
       show("homeScreen");
-      loadUsers();
+      loadChatList();
     }
+
+    setInterval(()=>{
+      updateDoc(doc(db,"users",ME.uid),{lastSeen:Date.now()});
+    },5000);
 
   }else{
     document.getElementById("login").style.display="flex";
   }
 });
 
-// USERNAME SAVE
+// USERNAME SAVE (UNIQUE)
 saveUsername.onclick = async()=>{
-  let name=usernameInput.value.trim().toLowerCase();
+  let uname=usernameInput.value.trim().toLowerCase();
 
-  if(name.length<3)return alert("Min 3 chars");
+  if(uname.length<3)return alert("Min 3 chars");
+  if(uname.includes(" "))return alert("No spaces");
 
-  await updateDoc(doc(db,"users",ME.uid),{name:name});
+  let snap = await getDocs(collection(db,"users"));
+  let taken=false;
+
+  snap.forEach(d=>{
+    if(d.data().name===uname) taken=true;
+  });
+
+  if(taken) return alert("Username taken ❌");
+
+  await updateDoc(doc(db,"users",ME.uid),{name:uname});
 
   show("homeScreen");
-  loadUsers();
+  loadChatList();
 };
 
 // UI
@@ -159,21 +176,48 @@ function show(id){
   document.getElementById(id).classList.add("active");
 }
 
-// LOGOUT
-logoutBtn.onclick=()=>signOut(auth);
-
 // NAV
+logoutBtn.onclick=()=>signOut(auth);
 searchBtn.onclick=()=>show("searchScreen");
 backBtn.onclick=()=>show("homeScreen");
 backBtn2.onclick=()=>show("homeScreen");
 
-// LOAD USERS (simple)
-function loadUsers(){
-  onSnapshot(collection(db,"users"),snap=>{
+// SEARCH
+searchInput.onkeyup=async()=>{
+  let term=searchInput.value.toLowerCase().trim();
+  userList.innerHTML="";
+  if(!term)return;
+
+  let snap = await getDocs(collection(db,"users"));
+
+  snap.forEach(d=>{
+    let u=d.data();
+    if(u.uid===ME.uid)return;
+
+    if(u.name.includes(term)){
+      let div=document.createElement("div");
+      div.className="user";
+      div.innerText=u.name;
+      div.onclick=()=>openChat(u);
+      userList.appendChild(div);
+    }
+  });
+};
+
+// CHAT LIST
+function loadChatList(){
+  onSnapshot(collection(db,"chats"),async snap=>{
     chatList.innerHTML="";
-    snap.forEach(d=>{
-      let u=d.data();
-      if(u.uid===ME.uid)return;
+
+    for(let d of snap.docs){
+      let id=d.id;
+      if(!id.includes(ME.uid)) continue;
+
+      let other=id.replace(ME.uid,"").replace("_","");
+      let udoc=await getDoc(doc(db,"users",other));
+      if(!udoc.exists()) continue;
+
+      let u=udoc.data();
 
       let div=document.createElement("div");
       div.className="user";
@@ -181,51 +225,55 @@ function loadUsers(){
       div.onclick=()=>openChat(u);
 
       chatList.appendChild(div);
-    });
+    }
   });
 }
 
-// SEARCH
-searchInput.onkeyup=()=>{
-  let term=searchInput.value.toLowerCase();
-  userList.innerHTML="";
-
-  onSnapshot(collection(db,"users"),snap=>{
-    snap.forEach(d=>{
-      let u=d.data();
-      if(u.uid===ME.uid)return;
-
-      if(u.name.includes(term)){
-        let div=document.createElement("div");
-        div.className="user";
-        div.innerText=u.name;
-        div.onclick=()=>openChat(u);
-        userList.appendChild(div);
-      }
-    });
-  });
-};
-
-// CHAT
+// OPEN CHAT
 function openChat(u){
   currentUser=u;
   currentChat=[ME.uid,u.uid].sort().join("_");
   chatName.innerText=u.name;
   show("chatScreen");
 
+  onSnapshot(doc(db,"users",u.uid),d=>{
+    let diff=(Date.now()-d.data().lastSeen)/1000;
+    status.innerText=diff<5?"online":"last seen "+Math.floor(diff)+"s";
+  });
+
+  onSnapshot(doc(db,"typing",currentChat),d=>{
+    typing.innerText=(d.exists() && d.data().uid!==ME.uid)?"typing...":"";
+  });
+
   if(unsub)unsub();
 
   unsub=onSnapshot(query(collection(db,"chats",currentChat,"messages"),orderBy("time")),snap=>{
     messages.innerHTML="";
-    snap.forEach(d=>{
-      let m=d.data();
+
+    snap.forEach(docu=>{
+      let m=docu.data();
 
       let div=document.createElement("div");
       div.className="msg "+(m.uid===ME.uid?"me":"other");
-      div.innerText=m.text;
+
+      div.innerHTML=(m.deleted?"<i>deleted</i>":m.text)
+      +" "+(m.uid===ME.uid?(m.seen?"✔✔":"✔"):"");
+
+      if(m.uid!==ME.uid && !m.seen){
+        updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{seen:true});
+      }
+
+      div.oncontextmenu=e=>{
+        e.preventDefault();
+        if(m.uid===ME.uid){
+          updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{deleted:true});
+        }
+      };
 
       messages.appendChild(div);
     });
+
+    messages.scrollTop=messages.scrollHeight;
   });
 }
 
@@ -236,12 +284,37 @@ sendBtn.onclick=async()=>{
   await addDoc(collection(db,"chats",currentChat,"messages"),{
     text:msg.value,
     uid:ME.uid,
+    seen:false,
+    deleted:false,
     time:Date.now()
   });
 
   msg.value="";
 };
 
+// TYPING
+msg.oninput=()=>{
+  if(!currentChat)return;
+  setDoc(doc(db,"typing",currentChat),{uid:ME.uid});
+  setTimeout(()=>setDoc(doc(db,"typing",currentChat),{}),1000);
+};
+
+// BLOCK
+blockBtn.onclick=async()=>{
+  let ref=doc(db,"users",ME.uid);
+  let d=await getDoc(ref);
+  let arr=d.data().blocked||[];
+
+  if(arr.includes(currentUser.uid)){
+    arr=arr.filter(x=>x!==currentUser.uid);
+  }else{
+    arr.push(currentUser.uid);
+  }
+
+  await updateDoc(ref,{blocked:arr});
+  alert("Updated");
+};
+
 </script>
 </body>
-</html>
+  </html>
