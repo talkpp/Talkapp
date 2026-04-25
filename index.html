@@ -1,22 +1,15 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TalkZone</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-<style>
+<title>TalkZone</title><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script><style>
 body{margin:0;font-family:sans-serif}
 
 /* LOGIN */
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
 #loginBox{background:#fff;padding:20px;border-radius:10px;width:300px}
 #login input{width:100%;padding:10px;margin:8px 0}
-#login button{width:100%;padding:10px;background:#667eea;color:#fff;border:none}
+#login button{width:100%;padding:10px;background:#667eea;color:#fff;border:none;cursor:pointer}
 
 /* APP */
 #app{display:none;height:100vh;display:flex}
@@ -28,9 +21,6 @@ body{margin:0;font-family:sans-serif}
 
 /* CHAT */
 #chat{flex:1;display:flex;flex-direction:column}
-#header{padding:10px;background:#075E54;color:white;display:flex;justify-content:space-between}
-#status{font-size:12px}
-
 #messages{flex:1;padding:10px;overflow:auto}
 .msg{margin:5px 0;padding:8px;border-radius:10px;max-width:60%}
 .me{background:#dcf8c6;margin-left:auto}
@@ -39,56 +29,24 @@ body{margin:0;font-family:sans-serif}
 #input{display:flex;padding:10px;border-top:1px solid #ccc}
 #input input{flex:1;padding:10px}
 #input button{padding:10px}
-
-/* MENU */
-#menu{position:absolute;right:10px;top:50px;background:#fff;border:1px solid #ccc;display:none}
-#menu div{padding:10px;cursor:pointer}
-#menu div:hover{background:#eee}
-</style>
-</head>
-
-<body>
-
-<!-- LOGIN -->
-<div id="login">
+</style></head><body><!-- LOGIN --><div id="login">
   <div id="loginBox">
     <h2>TalkZone</h2>
     <input id="u" placeholder="Username">
     <input id="p" type="password" placeholder="Password">
     <button onclick="login()">Login / Signup</button>
   </div>
-</div>
-
-<!-- APP -->
-<div id="app">
-
-<div id="sidebar"></div>
-
-<div id="chat">
-  <div id="header">
-    <div>
-      <div id="chatName">Select user</div>
-      <div id="status"></div>
+</div><!-- APP --><div id="app">
+  <div id="sidebar"></div>  <div id="chat">
+    <div id="messages"></div>
+    <div id="input">
+      <input id="msg" placeholder="Type message">
+      <button onclick="send()">Send</button>
     </div>
-    <div onclick="toggleMenu()">⋮</div>
   </div>
+</div><script>
 
-  <div id="menu">
-    <div onclick="toggleBlock()">Block / Unblock</div>
-  </div>
-
-  <div id="messages"></div>
-
-  <div id="input">
-    <input id="msg" placeholder="Type message">
-    <button onclick="send()">Send</button>
-  </div>
-</div>
-
-</div>
-
-<script>
-// 🔥 Firebase
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -100,53 +58,60 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let ME=null;
-let currentUser=null;
 let currentChat=null;
 let unsub=null;
 
-// LOGIN
+// 🔐 LOGIN / SIGNUP FIXED
 async function login(){
-  let u=uEl.value.trim().toLowerCase();
-  let p=pEl.value;
+  let u=document.getElementById("u").value.trim().toLowerCase();
+  let p=document.getElementById("p").value;
+
+  if(u.length<3 || p.length<6){
+    alert("Invalid input");
+    return;
+  }
+
   let email=u+"@app.com";
 
-  let snap = await db.collection("users").where("name","==",u).get();
-
-  if(snap.empty){
-    let cred = await auth.createUserWithEmailAndPassword(email,p);
-    await db.collection("users").doc(cred.user.uid).set({
-      uid:cred.user.uid,
-      name:u,
-      blocked:[],
-      lastSeen:Date.now()
-    });
-  }else{
+  try{
     await auth.signInWithEmailAndPassword(email,p);
+  }catch(e){
+    if(e.code==="auth/user-not-found"){
+      let cred = await auth.createUserWithEmailAndPassword(email,p);
+
+      await db.collection("users").doc(cred.user.uid).set({
+        name:u,
+        uid:cred.user.uid
+      });
+
+    }else{
+      alert("Wrong password ❌");
+    }
   }
 }
 
-const uEl=document.getElementById("u");
-const pEl=document.getElementById("p");
-
-// AUTH
+// 🔄 AUTH STATE FIX
 auth.onAuthStateChanged(user=>{
   if(user){
     ME=user;
-    login.style.display="none";
-    app.style.display="flex";
 
-    db.collection("users").doc(user.uid).update({
-      lastSeen:"online"
-    });
+    // 👇 ONLY AFTER LOGIN SHOW APP
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="flex";
 
     loadUsers();
+  }else{
+    // 👇 FORCE LOGIN SCREEN
+    document.getElementById("login").style.display="flex";
+    document.getElementById("app").style.display="none";
   }
 });
 
-// USERS
+// 👥 USERS
 function loadUsers(){
   db.collection("users").onSnapshot(snap=>{
-    sidebar.innerHTML="";
+    let box=document.getElementById("sidebar");
+    box.innerHTML="";
 
     snap.forEach(d=>{
       let u=d.data();
@@ -154,106 +119,57 @@ function loadUsers(){
 
       let div=document.createElement("div");
       div.className="user";
-      div.innerHTML = `<b>${u.name}</b><br><small>${u.lastSeen==="online"?"Online":"Last seen"}</small>`;
-      div.onclick=()=>openChat(u);
-      sidebar.appendChild(div);
+      div.innerText=u.name;
+
+      div.onclick=()=>openChat(u.uid);
+      box.appendChild(div);
     });
   });
 }
 
-// CHAT
-function openChat(u){
-  currentUser=u;
-  chatName.innerText=u.name;
-
-  currentChat=[ME.uid,u.uid].sort().join("_");
+// 💬 CHAT
+function openChat(uid){
+  currentChat=[ME.uid,uid].sort().join("_");
 
   if(unsub) unsub();
 
-  unsub=db.collection("chats").doc(currentChat)
-  .collection("messages")
-  .orderBy("time")
-  .onSnapshot(snap=>{
-    messages.innerHTML="";
+  unsub=db.collection("chats")
+    .doc(currentChat)
+    .collection("messages")
+    .orderBy("time")
+    .onSnapshot(snap=>{
+      let box=document.getElementById("messages");
+      box.innerHTML="";
 
-    snap.forEach(d=>{
-      let m=d.data();
+      snap.forEach(d=>{
+        let m=d.data();
+        let div=document.createElement("div");
+        div.className="msg "+(m.uid===ME.uid?"me":"other");
+        div.innerText=m.text;
+        box.appendChild(div);
+      });
 
-      let div=document.createElement("div");
-      div.className="msg "+(m.uid===ME.uid?"me":"other");
-
-      div.innerHTML = m.deleted ? "<i>Deleted</i>" : m.text;
-
-      // DELETE FOR EVERYONE
-      div.oncontextmenu=(e)=>{
-        e.preventDefault();
-        if(m.uid===ME.uid){
-          if(confirm("Delete for everyone?")){
-            d.ref.update({deleted:true,text:""});
-          }
-        }
-      };
-
-      messages.appendChild(div);
+      box.scrollTop=box.scrollHeight;
     });
-
-    messages.scrollTop=messages.scrollHeight;
-  });
 }
 
-// SEND
+// 📩 SEND
 async function send(){
-  let text=msg.value.trim();
-  if(!text || !currentUser) return;
+  let text=document.getElementById("msg").value.trim();
 
-  let meDoc=await db.collection("users").doc(ME.uid).get();
-  let otherDoc=await db.collection("users").doc(currentUser.uid).get();
+  if(!text || !currentChat) return;
 
-  if((meDoc.data().blocked||[]).includes(currentUser.uid)) return alert("Blocked");
-  if((otherDoc.data().blocked||[]).includes(ME.uid)) return alert("You are blocked");
-
-  await db.collection("chats").doc(currentChat)
-  .collection("messages").add({
-    text:text,
-    uid:ME.uid,
-    deleted:false,
-    time:firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  msg.value="";
-}
-
-// BLOCK
-async function toggleBlock(){
-  let ref=db.collection("users").doc(ME.uid);
-  let doc=await ref.get();
-  let arr=doc.data().blocked||[];
-
-  if(arr.includes(currentUser.uid)){
-    arr=arr.filter(id=>id!==currentUser.uid);
-    alert("Unblocked");
-  }else{
-    arr.push(currentUser.uid);
-    alert("Blocked");
-  }
-
-  await ref.update({blocked:arr});
-}
-
-// MENU
-function toggleMenu(){
-  menu.style.display = menu.style.display==="block"?"none":"block";
-}
-
-// LAST SEEN UPDATE
-window.onbeforeunload=()=>{
-  if(ME){
-    db.collection("users").doc(ME.uid).update({
-      lastSeen:Date.now()
+  await db.collection("chats")
+    .doc(currentChat)
+    .collection("messages")
+    .add({
+      text:text,
+      uid:ME.uid,
+      time: firebase.firestore.FieldValue.serverTimestamp()
     });
-  }
-};
-</script>
 
-</body>
-  </html>
+  document.getElementById("msg").value="";
+}
+
+</script></body>
+</html>
