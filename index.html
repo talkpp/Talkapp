@@ -9,116 +9,72 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
     body{margin:0;font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333;overflow:hidden;height:100vh;}
-    
-    /* LOGIN */
     #login{display:flex;justify-content:center;align-items:center;height:100vh;background:linear-gradient(135deg,#667eea,#764ba2);}
     #loginBox{background:#fff;padding:30px;border-radius:16px;width:320px;box-shadow:0 10px 30px rgba(0,0,0,0.2);text-align:center;}
     #login h2{margin:0 0 20px;color:#667eea;font-size:28px;}
-    #login input{width:100%;padding:14px;margin:10px 0;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;}
+    #login input{width:100%;padding:14px;margin:10px 0;border:1px solid #ddd;border-radius:8px;font-size:16px;}
     #login button{width:100%;padding:14px;background:#667eea;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;}
-    #login button:disabled{background:#999;cursor:not-allowed;}
-    #loginError{color:#d32f2f;font-size:14px;margin-top:12px;min-height:60px;}
+    #loginError{color:#d32f2f;margin-top:10px;}
 
-    /* APP */
     #app{display:none;height:100vh;flex-direction:column;}
-    #header{background:#667eea;color:white;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,0.1);}
-    #header h1{margin:0;font-size:22px;}
-    #userInfo{font-size:14px;}
-
+    #header{background:#667eea;color:white;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
     #main{display:flex;flex:1;overflow:hidden;}
-    
-    /* SIDEBAR */
     #sidebar{width:320px;background:#fff;border-right:1px solid #ddd;display:flex;flex-direction:column;}
     #searchBox{padding:15px;background:#f8f9fa;border-bottom:1px solid #ddd;}
-    #searchInput{width:100%;padding:12px 20px;border:1px solid #ddd;border-radius:25px;font-size:15px;outline:none;}
-    
+    #searchInput{width:100%;padding:12px 20px;border:1px solid #ddd;border-radius:25px;outline:none;}
     #usersList{flex:1;overflow:auto;}
-    .user{padding:14px 20px;border-bottom:1px solid #eee;cursor:pointer;display:flex;align-items:center;gap:12px;transition:0.2s;}
+    .user{padding:14px 20px;border-bottom:1px solid #eee;cursor:pointer;display:flex;align-items:center;gap:12px;}
     .user:hover{background:#f0f2f5;}
-    .avatar{width:48px;height:48px;background:#667eea;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px;flex-shrink:0;}
-    .userInfo{flex:1;min-width:0;}
-    .username{font-weight:600;font-size:16px;}
-    .status{font-size:13px;color:#888;}
+    .avatar{width:48px;height:48px;background:#667eea;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px;}
+    .username{font-weight:600;}
 
-    /* CHAT */
     #chatArea{flex:1;display:flex;flex-direction:column;background:#f0f2f5;position:relative;}
-    #chatHeader{padding:15px 20px;background:white;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:12px;box-shadow:0 2px 5px rgba(0,0,0,0.05);}
-    #chatHeader .avatar{width:42px;height:42px;font-size:18px;}
+    #chatHeader{padding:15px 20px;background:white;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:12px;display:none;}
     #chatWith{font-weight:600;font-size:18px;}
-    #chatStatus{font-size:13px;color:#4caf50;}
-    
-    #blockBtn{margin-left:auto;padding:8px 18px;background:#ff5252;color:white;border:none;border-radius:20px;cursor:pointer;font-size:14px;}
-    #blockBtn.blocked{background:#666;}
-
-    #messages{flex:1;padding:20px 20px 100px;overflow:auto;display:flex;flex-direction:column;gap:12px;background:#f0f2f5 url('https://www.transparenttextures.com/patterns/chat.png');}
-    .msg{max-width:75%;padding:12px 16px;border-radius:18px;position:relative;line-height:1.45;font-size:15.5px;cursor:pointer;}
-    .me{background:#dcf8c6;align-self:flex-end;border-bottom-right-radius:5px;}
-    .other{background:#fff;align-self:flex-start;border-bottom-left-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
-    .msgTime{font-size:11px;color:#777;margin-top:5px;opacity:0.85;}
-    
-    .delete-option{position:absolute;top:-32px;right:10px;background:#ff5252;color:white;padding:4px 10px;border-radius:12px;font-size:12px;display:none;z-index:10;}
-    .msg:hover .delete-option{display:block;}
-
-    #inputArea{position:absolute;bottom:0;left:0;right:0;background:white;padding:12px 16px;border-top:1px solid #ddd;display:flex;gap:10px;box-shadow:0 -2px 10px rgba(0,0,0,0.08);}
-    #inputArea input{flex:1;padding:14px 20px;border:1px solid #ddd;border-radius:30px;font-size:16px;outline:none;}
-    #inputArea button{padding:0 26px;background:#667eea;color:white;border:none;border-radius:30px;cursor:pointer;font-weight:600;}
+    #messages{flex:1;padding:20px 20px 100px;overflow:auto;display:flex;flex-direction:column;gap:12px;}
+    .msg{max-width:75%;padding:12px 16px;border-radius:18px;}
+    .me{background:#dcf8c6;align-self:flex-end;}
+    .other{background:#fff;align-self:flex-start;}
+    #inputArea{position:absolute;bottom:0;left:0;right:0;background:white;padding:12px 16px;border-top:1px solid #ddd;display:flex;gap:10px;display:none;}
+    #inputArea input{flex:1;padding:14px;border:1px solid #ddd;border-radius:30px;outline:none;}
+    #inputArea button{padding:0 24px;background:#667eea;color:white;border:none;border-radius:30px;cursor:pointer;}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="login">
   <div id="loginBox">
     <h2>TalkZone</h2>
-    <input id="u" placeholder="Username (min 3 chars)">
-    <input id="p" type="password" placeholder="Password (min 6 chars)">
-    <button id="authBtn" onclick="handleAuth()">Login / Sign Up</button>
+    <input id="u" placeholder="Username">
+    <input id="p" type="password" placeholder="Password">
+    <button onclick="handleAuth()">Login / Sign Up</button>
     <div id="loginError"></div>
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
   <div id="header">
     <h1>TalkZone</h1>
     <div id="userInfo"></div>
-    <button onclick="showBlockedModal()" style="background:none;border:none;color:white;cursor:pointer;">Blocked</button>
+    <button onclick="showBlockedModal()">Blocked</button>
   </div>
-
   <div id="main">
     <div id="sidebar">
-      <div id="searchBox">
-        <input id="searchInput" placeholder="Search users by username..." onkeyup="filterUsers()">
-      </div>
+      <div id="searchBox"><input id="searchInput" placeholder="Search users..." onkeyup="filterUsers()"></div>
       <div id="usersList"></div>
     </div>
-
     <div id="chatArea">
-      <div id="chatHeader" style="display:none;">
+      <div id="chatHeader">
         <div class="avatar" id="chatAvatar"></div>
-        <div style="flex:1;">
-          <div id="chatWith" style="font-weight:600;"></div>
-          <div id="chatStatus" class="status">online</div>
-        </div>
-        <button id="blockBtn" onclick="toggleBlock()">Block User</button>
+        <div id="chatWith" style="flex:1"></div>
+        <button id="blockBtn" onclick="toggleBlock()">Block</button>
       </div>
-
       <div id="messages"></div>
-
-      <div id="inputArea" style="display:none;">
-        <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+      <div id="inputArea">
+        <input id="msgInput" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendMessage()">
         <button onclick="sendMessage()">Send</button>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- Blocked Modal -->
-<div id="blockedModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);justify-content:center;align-items:center;z-index:1000;">
-  <div style="background:white;padding:25px;border-radius:16px;width:340px;max-height:85vh;overflow:auto;">
-    <h3>Blocked Users</h3>
-    <div id="blockedList"></div>
-    <button onclick="hideBlockedModal()" style="width:100%;padding:12px;background:#667eea;color:white;border:none;border-radius:8px;margin-top:10px;">Close</button>
   </div>
 </div>
 
@@ -139,85 +95,43 @@ let currentChatId = null;
 let currentChatUser = null;
 let unsubMessages = null;
 let unsubUsers = null;
-let allUsers = [];
-let blockedUsers = new Set();
-let isProcessing = false;
 
-// ==================== SAFE LOGIN ====================
 async function handleAuth() {
-  if (isProcessing) return;
-  isProcessing = true;
+  const u = document.getElementById("u").value.trim().toLowerCase();
+  const p = document.getElementById("p").value;
+  const err = document.getElementById("loginError");
+  err.innerText = "";
 
-  const btn = document.getElementById("authBtn");
-  btn.disabled = true;
-  btn.textContent = "Please wait...";
-
-  const username = document.getElementById("u").value.trim().toLowerCase();
-  const password = document.getElementById("p").value.trim();
-  const errorDiv = document.getElementById("loginError");
-
-  errorDiv.innerText = "";
-
-  if (username.length < 3 || password.length < 6) {
-    errorDiv.innerText = "Username minimum 3 characters\nPassword minimum 6 characters";
-    resetButton();
+  if (u.length < 3 || p.length < 6) {
+    err.innerText = "Username min 3, Password min 6";
     return;
   }
 
-  const email = username + "@talkzone.app";
-
+  const email = u + "@talkzone.app";
   try {
-    const usernameDoc = await db.collection("usernames").doc(username).get();
-
-    if (usernameDoc.exists) {
-      // Existing User
-      await auth.signInWithEmailAndPassword(email, password);
-    } else {
-      // New User
-      const cred = await auth.createUserWithEmailAndPassword(email, password);
-      
-      await db.collection("users").doc(cred.user.uid).set({
-        name: username,
-        uid: cred.user.uid,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      await db.collection("usernames").doc(username).set({
-        uid: cred.user.uid,
-        reserved: true,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
+    await auth.signInWithEmailAndPassword(email, p);
   } catch (e) {
-    console.error(e.code, e.message);
-    if (e.code === "auth/too-many-requests") {
-      errorDiv.innerText = "Too many attempts!\n\nFirebase has temporarily blocked this device.\n\nPlease wait 30-60 minutes and try again.";
-    } else if (e.code === "auth/email-already-in-use" || e.code.includes("invalid-credential") || e.code.includes("wrong-password")) {
-      errorDiv.innerText = "Wrong password or username already taken.";
+    if (e.code === "auth/user-not-found" || e.code.includes("invalid")) {
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(email, p);
+        await db.collection("users").doc(cred.user.uid).set({name: u, uid: cred.user.uid});
+        await db.collection("usernames").doc(u).set({uid: cred.user.uid, reserved: true});
+      } catch (err2) {
+        err.innerText = "Signup error: " + err2.message;
+      }
     } else {
-      errorDiv.innerText = "Error: " + (e.message || "Please try again later");
+      err.innerText = "Login failed: " + e.message;
     }
-  } finally {
-    resetButton();
   }
 }
 
-function resetButton() {
-  const btn = document.getElementById("authBtn");
-  btn.disabled = false;
-  btn.textContent = "Login / Sign Up";
-  isProcessing = false;
-}
-
-// Auth State
-auth.onAuthStateChanged(async (user) => {
+auth.onAuthStateChanged(user => {
   if (user) {
     ME = user;
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "flex";
-    document.getElementById("userInfo").innerText = "Logged in as: " + (ME.email ? ME.email.split('@')[0] : "You");
-
-    await loadBlockedUsers();
+    document.getElementById("userInfo").innerText = "Logged in as: " + (ME.email ? ME.email.split('@')[0] : "User");
+    console.log("✅ Logged in successfully as:", ME.uid);
     loadAllUsers();
   } else {
     document.getElementById("login").style.display = "flex";
@@ -225,76 +139,74 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
-// Baaki functions (loadBlockedUsers, loadAllUsers, openChat, sendMessage, deleteMessage, toggleBlock, blocked modal) same hain jaise pehle diye the.
-
-async function loadBlockedUsers() {
-  blockedUsers.clear();
-  try {
-    const snap = await db.collection("users").doc(ME.uid).collection("blocked").get();
-    snap.forEach(doc => blockedUsers.add(doc.id));
-  } catch(e) {}
-}
-
 function loadAllUsers() {
+  console.log("Loading users list...");
   if (unsubUsers) unsubUsers();
   unsubUsers = db.collection("users").onSnapshot(snap => {
-    allUsers = [];
+    console.log("Users snapshot received, count:", snap.size);
     const box = document.getElementById("usersList");
     box.innerHTML = "";
-    snap.forEach(d => {
-      const u = d.data();
+    snap.forEach(doc => {
+      const u = doc.data();
       if (u.uid === ME.uid) return;
-      allUsers.push(u);
       const div = document.createElement("div");
       div.className = "user";
-      div.innerHTML = `
-        <div class="avatar">${u.name[0].toUpperCase()}</div>
-        <div class="userInfo">
-          <div class="username">${u.name}</div>
-          <div class="status">Tap to chat</div>
-        </div>
-      `;
+      div.innerHTML = `<div class="avatar">\( {u.name[0].toUpperCase()}</div><div><div class="username"> \){u.name}</div><div>Tap to chat</div></div>`;
       div.onclick = () => openChat(u);
       box.appendChild(div);
     });
+  }, error => {
+    console.error("❌ Users load error:", error);
   });
 }
 
-function filterUsers() {
-  const term = document.getElementById("searchInput").value.toLowerCase().trim();
-  const box = document.getElementById("usersList");
-  box.innerHTML = "";
-  allUsers.forEach(u => {
-    if (u.name.toLowerCase().includes(term)) {
-      const div = document.createElement("div");
-      div.className = "user";
-      div.innerHTML = `
-        <div class="avatar">${u.name[0].toUpperCase()}</div>
-        <div class="userInfo">
-          <div class="username">${u.name}</div>
-          <div class="status">Tap to chat</div>
-        </div>
-      `;
-      div.onclick = () => openChat(u);
-      box.appendChild(div);
-    }
-  });
-}
+function openChat(user) {
+  console.log("Opening chat with:", user.name, "UID:", user.uid);
+  currentChatUser = user;
+  currentChatId = [ME.uid, user.uid].sort().join("_");
+  console.log("Chat ID:", currentChatId);
 
-// Open Chat, Send Message, Delete, Block etc. functions ko aap pehle wale code se copy kar sakte ho (space saving ke liye yahan nahi likh raha)
+  document.getElementById("chatHeader").style.display = "flex";
+  document.getElementById("chatAvatar").innerText = user.name[0].toUpperCase();
+  document.getElementById("chatWith").innerText = user.name;
+  document.getElementById("inputArea").style.display = "flex";
 
-function openChat(user) { /* same as previous */ }
-async function sendMessage() { /* same */ }
-async function deleteMessage(msgId) { /* same */ }
-async function toggleBlock() { /* same */ }
-async function showBlockedModal() { /* same */ }
-function hideBlockedModal() { /* same */ }
-async function unblockFromModal(uid) { /* same */ }
-
-window.addEventListener("beforeunload", () => {
   if (unsubMessages) unsubMessages();
-  if (unsubUsers) unsubUsers();
-});
+
+  unsubMessages = db.collection("chats").doc(currentChatId)
+    .collection("messages")
+    .orderBy("time", "asc")
+    .onSnapshot(snap => {
+      console.log("Messages snapshot received:", snap.size);
+      const box = document.getElementById("messages");
+      box.innerHTML = "";
+      snap.forEach(d => {
+        const m = d.data();
+        const div = document.createElement("div");
+        div.className = `msg ${m.uid === ME.uid ? "me" : "other"}`;
+        div.innerHTML = m.text + "<br><small>" + (m.time ? m.time.toDate().toLocaleTimeString() : '') + "</small>";
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }, error => {
+      console.error("❌ Messages listener error:", error.code, error.message);
+    });
+}
+
+async function sendMessage() {
+  const text = document.getElementById("msgInput").value.trim();
+  if (!text || !currentChatId) return;
+  console.log("Sending message:", text);
+  await db.collection("chats").doc(currentChatId).collection("messages").add({
+    text: text,
+    uid: ME.uid,
+    time: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  document.getElementById("msgInput").value = "";
+}
+
+// Other functions (block, delete etc.) can be added later if needed
+
 </script>
 </body>
-    </html>
+</html>
