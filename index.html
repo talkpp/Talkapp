@@ -14,7 +14,7 @@
     #login{display:flex;justify-content:center;align-items:center;height:100vh;background:linear-gradient(135deg,#667eea,#764ba2);}
     #loginBox{background:#fff;padding:30px;border-radius:16px;width:320px;box-shadow:0 10px 30px rgba(0,0,0,0.2);text-align:center;}
     #login h2{margin:0 0 20px;color:#667eea;font-size:28px;}
-    #login input{width:100%;padding:14px;margin:10px 0;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;}
+    #login input{width:100%;padding:14px;margin:10px 0;border:1px solid #ddd;border-radius:8px;font-size:16px;}
     #login button{width:100%;padding:14px;background:#667eea;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;}
     #loginError{color:#d32f2f;margin-top:10px;}
 
@@ -37,7 +37,7 @@
     .avatar{width:48px;height:48px;background:#667eea;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px;flex-shrink:0;}
     .userInfo{flex:1;min-width:0;}
     .username{font-weight:600;font-size:16px;}
-    .status{font-size:13px;color:#666;}
+    .status{font-size:13px;color:#4caf50;}
 
     /* CHAT AREA */
     #chatArea{flex:1;display:flex;flex-direction:column;background:#f0f2f5;position:relative;}
@@ -45,15 +45,16 @@
     #chatHeader{padding:15px 20px;background:white;border-bottom:1px solid #ddd;display:none;align-items:center;gap:12px;}
     #chatHeader .avatar{width:42px;height:42px;font-size:18px;}
     #chatWith{font-weight:600;font-size:18px;}
+    #chatStatus{font-size:13px;color:#4caf50;}
 
     #messages{
         flex:1;
-        padding:20px 20px 85px;   /* Balanced padding */
+        padding:20px 20px 85px;
         overflow:auto;
         display:flex;
         flex-direction:column;
         gap:12px;
-        background:#f0f2f5;
+        background:#f0f2f5 url('https://www.transparenttextures.com/patterns/chat.png');
     }
     .msg{
         max-width:75%;
@@ -63,10 +64,13 @@
         line-height:1.45;
         font-size:15.5px;
     }
-    .me{background:#dcf8c6;align-self:flex-end;}
-    .other{background:#fff;align-self:flex-start;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+    .me{background:#dcf8c6;align-self:flex-end;border-bottom-right-radius:5px;}
+    .other{background:#fff;align-self:flex-start;border-bottom-left-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+    
+    .msgTime{font-size:11px;color:#777;margin-top:4px;text-align:right;}
+    .ticks{font-size:12px;color:#4caf50;margin-left:4px;}
 
-    /* FIXED INPUT - Properly Fixed */
+    /* FIXED INPUT */
     #inputArea{
         position:absolute;
         bottom:0;
@@ -133,13 +137,13 @@
         <div class="avatar" id="chatAvatar"></div>
         <div style="flex:1">
           <div id="chatWith" style="font-weight:600;"></div>
+          <div id="chatStatus" class="status">online</div>
         </div>
         <button id="blockBtn" onclick="toggleBlock()">Block</button>
       </div>
 
       <div id="messages"></div>
 
-      <!-- FIXED INPUT AREA -->
       <div id="inputArea">
         <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
         <button onclick="sendMessage()">Send</button>
@@ -229,7 +233,7 @@ function loadAllUsers() {
         <div class="avatar">${u.name.charAt(0).toUpperCase()}</div>
         <div class="userInfo">
           <div class="username">${u.name}</div>
-          <div class="status">Tap to chat</div>
+          <div class="status">online</div>
         </div>
       `;
       div.onclick = () => openChat(u);
@@ -250,7 +254,7 @@ function filterUsers() {
         <div class="avatar">${u.name.charAt(0).toUpperCase()}</div>
         <div class="userInfo">
           <div class="username">${u.name}</div>
-          <div class="status">Tap to chat</div>
+          <div class="status">online</div>
         </div>
       `;
       div.onclick = () => openChat(u);
@@ -259,7 +263,7 @@ function filterUsers() {
   });
 }
 
-// Open Chat
+// Open Chat - Fixed Display
 function openChat(user) {
   currentChatUser = user;
   currentChatId = [ME.uid, user.uid].sort().join("_");
@@ -282,15 +286,14 @@ function openChat(user) {
         const div = document.createElement("div");
         div.className = `msg ${m.uid === ME.uid ? "me" : "other"}`;
         
-        let timeStr = '';
-        if (m.time) {
-          const date = m.time.toDate();
-          timeStr = date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        }
+        let timeStr = m.time ? m.time.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+        let ticks = m.uid === ME.uid ? ' ✓✓' : '';
 
         div.innerHTML = `
           ${m.text}
-          <div style="font-size:11px;color:#777;margin-top:4px;">${timeStr}</div>
+          <div style="font-size:11px;color:#777;margin-top:4px;display:flex;justify-content:flex-end;align-items:center;">
+            \( {timeStr}<span class="ticks"> \){ticks}</span>
+          </div>
         `;
         box.appendChild(div);
       });
