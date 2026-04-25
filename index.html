@@ -9,13 +9,18 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 .screen{display:none;height:100vh;flex-direction:column}
 .active{display:flex}
 
-#login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
+/* LOGIN */
+#login{display:none;justify-content:center;align-items:center;height:100vh;background:#667eea}
 #box{background:#fff;padding:25px;border-radius:12px;text-align:center}
 
+/* HEADER */
 .header{background:#075E54;color:#fff;padding:15px}
+
+/* CHAT LIST */
 .chatItem{padding:12px;border-bottom:1px solid #ddd;cursor:pointer}
 .chatItem:hover{background:#eee}
 
+/* CHAT */
 #messages{flex:1;overflow:auto;padding:10px;background:#ece5dd}
 .msg{padding:10px;border-radius:10px;margin:5px;max-width:65%;position:relative}
 .me{background:#dcf8c6;margin-left:auto}
@@ -24,10 +29,11 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 .tick{font-size:12px;margin-left:5px}
 .blue{color:blue}
 
-.reaction{position:absolute;bottom:-10px;right:10px;font-size:14px}
+.reaction{position:absolute;bottom:-10px;right:10px}
 
 #input{display:flex;padding:10px;background:#fff}
 #input input{flex:1;padding:10px;border-radius:20px;border:1px solid #ccc}
+
 #replyBox{background:#eee;padding:5px;display:none}
 </style>
 </head>
@@ -110,7 +116,9 @@ googleBtn.onclick=()=>signInWithPopup(auth,new GoogleAuthProvider());
 // AUTH
 onAuthStateChanged(auth,async user=>{
 if(user){
+
 document.getElementById("login").style.display="none";
+
 ME=user;
 
 let ref=doc(db,"users",user.uid);
@@ -124,14 +132,26 @@ return;
 
 myData=snap.data();
 
-if(!myData.name) show("usernameScreen");
-else{show("homeScreen");loadChats();}
+if(!myData.name){
+show("usernameScreen");
+}else{
+show("homeScreen");
+loadChats();
+}
 
-setInterval(()=>updateDoc(doc(db,"users",ME.uid),{lastSeen:Date.now(),online:true}),5000);
+// ✅ online ONCE (no loop)
+await updateDoc(doc(db,"users",ME.uid),{
+online:true,
+lastSeen:Date.now()
+});
 
-window.onbeforeunload=()=>{
-updateDoc(doc(db,"users",ME.uid),{online:false,lastSeen:Date.now()});
-};
+// ✅ offline on close
+window.addEventListener("beforeunload",()=>{
+updateDoc(doc(db,"users",ME.uid),{
+online:false,
+lastSeen:Date.now()
+});
+});
 
 }else{
 document.getElementById("login").style.display="flex";
@@ -192,7 +212,7 @@ userList.appendChild(div);
 });
 };
 
-// OPEN CHAT
+// CHAT
 function openChat(u){
 
 if(myData.blocked?.includes(u.uid)) return alert("Blocked");
@@ -202,20 +222,25 @@ currentChat=[ME.uid,u.uid].sort().join("_");
 chatName.innerText=u.name;
 show("chatScreen");
 
-// online
+// ✅ ONLINE FIX
 onSnapshot(doc(db,"users",u.uid),d=>{
 let data=d.data();
-status.innerText=data.online?"online":"last seen";
+if(data.online){
+status.innerText="online";
+}else{
+let sec=Math.floor((Date.now()-data.lastSeen)/1000);
+status.innerText="last seen "+sec+"s ago";
+}
 });
 
-// typing
+// ✅ TYPING FIX
 onSnapshot(doc(db,"typing",currentChat),d=>{
-if(!d.exists()) return typing.innerText="";
+if(!d.exists()){typing.innerText="";return;}
 let t=d.data();
 typing.innerText=(t.uid!==ME.uid && Date.now()-t.time<2000)?"typing...":"";
 });
 
-// messages
+// MESSAGES
 if(unsub)unsub();
 
 unsub=onSnapshot(query(collection(db,"chats",currentChat,"messages"),orderBy("time")),snap=>{
@@ -286,7 +311,7 @@ replyBox.style.display="none";
 msg.value="";
 };
 
-// typing
+// typing send
 msg.oninput=()=>{
 if(!currentChat)return;
 setDoc(doc(db,"typing",currentChat),{uid:ME.uid,time:Date.now()});
@@ -308,4 +333,4 @@ logoutBtn.onclick=()=>signOut(auth);
 
 </script>
 </body>
-</html>
+  </html>
