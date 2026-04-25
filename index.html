@@ -9,18 +9,21 @@ body{margin:0;font-family:sans-serif}
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
 #loginBox{background:#fff;padding:20px;border-radius:10px;width:300px}
 #login input{width:100%;padding:10px;margin:8px 0}
-#login button{width:100%;padding:10px;background:#667eea;color:#fff;border:none;cursor:pointer}
+#login button{width:100%;padding:10px;background:#667eea;color:#fff;border:none}
 
 /* APP */
 #app{display:none;height:100vh;display:flex}
 
 /* SIDEBAR */
 #sidebar{width:30%;background:#f0f2f5;overflow:auto}
+#search{width:90%;margin:10px;padding:8px}
 .user{padding:12px;border-bottom:1px solid #ddd;cursor:pointer}
 .user:hover{background:#ddd}
+.small{font-size:12px;color:#666}
 
 /* CHAT */
 #chat{flex:1;display:flex;flex-direction:column}
+#header{background:#075E54;color:#fff;padding:10px}
 #messages{flex:1;padding:10px;overflow:auto}
 .msg{margin:5px 0;padding:8px;border-radius:10px;max-width:60%}
 .me{background:#dcf8c6;margin-left:auto}
@@ -29,24 +32,29 @@ body{margin:0;font-family:sans-serif}
 #input{display:flex;padding:10px;border-top:1px solid #ccc}
 #input input{flex:1;padding:10px}
 #input button{padding:10px}
-</style></head><body><!-- LOGIN --><div id="login">
+</style></head><body><div id="login">
   <div id="loginBox">
     <h2>TalkZone</h2>
     <input id="u" placeholder="Username">
     <input id="p" type="password" placeholder="Password">
     <button onclick="login()">Login / Signup</button>
   </div>
-</div><!-- APP --><div id="app">
-  <div id="sidebar"></div>  <div id="chat">
-    <div id="messages"></div>
-    <div id="input">
-      <input id="msg" placeholder="Type message">
-      <button onclick="send()">Send</button>
-    </div>
-  </div>
-</div><script>
+</div><div id="app">  <div id="sidebar">
+    <input id="search" placeholder="Search user..." oninput="searchUser()">
+    <div id="userList"></div>
+  </div>  <div id="chat">
+    <div id="header">
+      <div id="chatName">Select user</div>
+      <div id="status" class="small"></div>
+    </div><div id="messages"></div>
 
-// 🔥 Firebase Config
+<div id="input">
+  <input id="msg" placeholder="Type message">
+  <button onclick="send()">Send</button>
+</div>
+
+  </div></div><script>
+
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -59,9 +67,11 @@ const db = firebase.firestore();
 
 let ME=null;
 let currentChat=null;
+let currentUser=null;
 let unsub=null;
+let USERS=[];
 
-// 🔐 LOGIN / SIGNUP FIXED
+// LOGIN (same logic)
 async function login(){
   let u=document.getElementById("u").value.trim().toLowerCase();
   let p=document.getElementById("p").value;
@@ -81,7 +91,9 @@ async function login(){
 
       await db.collection("users").doc(cred.user.uid).set({
         name:u,
-        uid:cred.user.uid
+        uid:cred.user.uid,
+        blocked:[],
+        lastSeen:"online"
       });
 
     }else{
@@ -90,46 +102,70 @@ async function login(){
   }
 }
 
-// 🔄 AUTH STATE FIX
+// AUTH
 auth.onAuthStateChanged(user=>{
   if(user){
     ME=user;
+    login.style.display="none";
+    app.style.display="flex";
 
-    // 👇 ONLY AFTER LOGIN SHOW APP
-    document.getElementById("login").style.display="none";
-    document.getElementById("app").style.display="flex";
+    db.collection("users").doc(user.uid).update({lastSeen:"online"});
 
     loadUsers();
   }else{
-    // 👇 FORCE LOGIN SCREEN
-    document.getElementById("login").style.display="flex";
-    document.getElementById("app").style.display="none";
+    login.style.display="flex";
+    app.style.display="none";
   }
 });
 
-// 👥 USERS
+// LOAD USERS
 function loadUsers(){
   db.collection("users").onSnapshot(snap=>{
-    let box=document.getElementById("sidebar");
+    USERS=[];
+    let box=document.getElementById("userList");
     box.innerHTML="";
 
     snap.forEach(d=>{
       let u=d.data();
+      USERS.push(u);
+
       if(u.uid===ME.uid) return;
 
       let div=document.createElement("div");
       div.className="user";
-      div.innerText=u.name;
+      div.innerHTML=`<b>${u.name}</b><br><span class="small">${u.lastSeen==="online"?"Online":"Last seen"}</span>`;
 
-      div.onclick=()=>openChat(u.uid);
+      div.onclick=()=>openChat(u);
       box.appendChild(div);
     });
   });
 }
 
-// 💬 CHAT
-function openChat(uid){
-  currentChat=[ME.uid,uid].sort().join("_");
+// SEARCH
+function searchUser(){
+  let q=document.getElementById("search").value.toLowerCase();
+  let box=document.getElementById("userList");
+  box.innerHTML="";
+
+  USERS.forEach(u=>{
+    if(u.uid===ME.uid) return;
+    if(!u.name.includes(q)) return;
+
+    let div=document.createElement("div");
+    div.className="user";
+    div.innerHTML=`<b>${u.name}</b>`;
+    div.onclick=()=>openChat(u);
+    box.appendChild(div);
+  });
+}
+
+// OPEN CHAT
+function openChat(u){
+  currentUser=u;
+  document.getElementById("chatName").innerText=u.name;
+  document.getElementById("status").innerText=u.lastSeen==="online"?"Online":"Last seen";
+
+  currentChat=[ME.uid,u.uid].sort().join("_");
 
   if(unsub) unsub();
 
@@ -144,8 +180,21 @@ function openChat(uid){
       snap.forEach(d=>{
         let m=d.data();
         let div=document.createElement("div");
+
         div.className="msg "+(m.uid===ME.uid?"me":"other");
-        div.innerText=m.text;
+
+        div.innerHTML = m.deleted ? "<i>Deleted</i>" : m.text;
+
+        // DELETE FOR EVERYONE
+        div.oncontextmenu=(e)=>{
+          e.preventDefault();
+          if(m.uid===ME.uid){
+            if(confirm("Delete for everyone?")){
+              d.ref.update({deleted:true,text:""});
+            }
+          }
+        };
+
         box.appendChild(div);
       });
 
@@ -153,11 +202,10 @@ function openChat(uid){
     });
 }
 
-// 📩 SEND
+// SEND
 async function send(){
   let text=document.getElementById("msg").value.trim();
-
-  if(!text || !currentChat) return;
+  if(!text || !currentUser) return;
 
   await db.collection("chats")
     .doc(currentChat)
@@ -165,11 +213,21 @@ async function send(){
     .add({
       text:text,
       uid:ME.uid,
+      deleted:false,
       time: firebase.firestore.FieldValue.serverTimestamp()
     });
 
   document.getElementById("msg").value="";
 }
+
+// LAST SEEN UPDATE
+window.onbeforeunload=()=>{
+  if(ME){
+    db.collection("users").doc(ME.uid).update({
+      lastSeen:Date.now()
+    });
+  }
+};
 
 </script></body>
 </html>
