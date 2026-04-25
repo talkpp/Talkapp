@@ -17,11 +17,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 .header{background:#075E54;color:#fff;padding:15px;font-size:18px}
 
 /* CHAT LIST */
-.chatItem{
-  padding:12px;
-  border-bottom:1px solid #ddd;
-  cursor:pointer;
-}
+.chatItem{padding:12px;border-bottom:1px solid #ddd;cursor:pointer}
 .chatItem:hover{background:#eee}
 .name{font-weight:bold}
 .last{font-size:13px;color:gray}
@@ -31,6 +27,9 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 .msg{padding:10px;border-radius:10px;margin:5px;max-width:65%}
 .me{background:#dcf8c6;margin-left:auto}
 .other{background:#fff}
+
+.tick{font-size:12px;margin-left:5px;color:gray}
+.seen{color:blue}
 
 #input{display:flex;padding:10px;background:#fff}
 #input input{flex:1;padding:10px;border-radius:20px;border:1px solid #ccc}
@@ -78,8 +77,11 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
   <div class="header">
     <span id="backBtn2">⬅</span>
     <span id="chatName"></span>
+    <button id="blockBtn" style="float:right">Block</button>
   </div>
 
+  <div id="status"></div>
+  <div id="typing"></div>
   <div id="messages"></div>
 
   <div id="input">
@@ -103,7 +105,7 @@ const app = initializeApp({
 const auth = getAuth();
 const db = getFirestore();
 
-let ME,currentChat=null,unsub=null;
+let ME,currentUser,currentChat=null,unsub=null,myData=null;
 
 // UI
 function show(id){
@@ -119,26 +121,30 @@ googleBtn.onclick = async()=>{
 // AUTH
 onAuthStateChanged(auth, async user=>{
   if(user){
-
     document.getElementById("login").style.display="none";
-
     ME=user;
 
     let ref=doc(db,"users",user.uid);
     let snap=await getDoc(ref);
 
     if(!snap.exists()){
-      await setDoc(ref,{name:"",uid:user.uid});
+      await setDoc(ref,{name:"",uid:user.uid,blocked:[],lastSeen:Date.now()});
       show("usernameScreen");
       return;
     }
 
-    if(!snap.data().name){
+    myData=snap.data();
+
+    if(!myData.name){
       show("usernameScreen");
     }else{
       show("homeScreen");
-      loadChats(); // 🔥 FIX
+      loadChats();
     }
+
+    setInterval(()=>{
+      updateDoc(doc(db,"users",ME.uid),{lastSeen:Date.now()});
+    },5000);
 
   }else{
     document.getElementById("login").style.display="flex";
@@ -164,14 +170,13 @@ saveUsername.onclick = async()=>{
   loadChats();
 };
 
-// 🔥 CHAT LIST (PRO FIX)
+// CHAT LIST
 function loadChats(){
   onSnapshot(collection(db,"chats"),async snap=>{
     chatList.innerHTML="";
 
     for(let d of snap.docs){
       let id=d.id;
-
       if(!id.includes(ME.uid)) continue;
 
       let other=id.replace(ME.uid,"").replace("_","");
@@ -186,16 +191,13 @@ function loadChats(){
       msgs.forEach(m=>{
         if(!lastMsg){
           let data=m.data();
-          lastMsg=data.text || "media";
+          lastMsg=data.deleted?"deleted":data.text;
         }
       });
 
       let div=document.createElement("div");
       div.className="chatItem";
-      div.innerHTML=`
-        <div class="name">${u.name}</div>
-        <div class="last">${lastMsg}</div>
-      `;
+      div.innerHTML=`<div class="name">${u.name}</div><div class="last">${lastMsg}</div>`;
       div.onclick=()=>openChat(u);
 
       chatList.appendChild(div);
@@ -230,21 +232,55 @@ searchInput.onkeyup=async()=>{
 
 // CHAT
 function openChat(u){
+
+  if(myData.blocked?.includes(u.uid)){
+    alert("User blocked");
+    return;
+  }
+
+  currentUser=u;
   currentChat=[ME.uid,u.uid].sort().join("_");
   chatName.innerText=u.name;
   show("chatScreen");
+
+  onSnapshot(doc(db,"users",u.uid),d=>{
+    let diff=(Date.now()-d.data().lastSeen)/1000;
+    status.innerText=diff<5?"online":"last seen "+Math.floor(diff)+"s";
+  });
+
+  onSnapshot(doc(db,"typing",currentChat),d=>{
+    typing.innerText=(d.exists() && d.data().uid!==ME.uid)?"typing...":"";
+  });
 
   if(unsub)unsub();
 
   unsub=onSnapshot(query(collection(db,"chats",currentChat,"messages"),orderBy("time")),snap=>{
     messages.innerHTML="";
 
-    snap.forEach(d=>{
-      let m=d.data();
+    snap.forEach(docu=>{
+      let m=docu.data();
 
       let div=document.createElement("div");
       div.className="msg "+(m.uid===ME.uid?"me":"other");
-      div.innerText=m.text;
+
+      let tick="";
+      if(m.uid===ME.uid){
+        tick=m.seen?"✔✔":"✔";
+      }
+
+      div.innerHTML=(m.deleted?"<i>deleted</i>":m.text)+
+        `<span class="tick ${m.seen?"seen":""}">${tick}</span>`;
+
+      if(m.uid!==ME.uid && !m.seen){
+        updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{seen:true});
+      }
+
+      div.oncontextmenu=e=>{
+        e.preventDefault();
+        if(m.uid===ME.uid){
+          updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{deleted:true});
+        }
+      };
 
       messages.appendChild(div);
     });
@@ -255,8 +291,10 @@ function openChat(u){
 
 // SEND
 sendBtn.onclick = async()=>{
-  if(!msg.value || !currentChat){
-    alert("Select user first");
+  if(!msg.value || !currentChat)return;
+
+  if(myData.blocked?.includes(currentUser.uid)){
+    alert("Blocked");
     return;
   }
 
@@ -267,10 +305,36 @@ sendBtn.onclick = async()=>{
   await addDoc(collection(db,"chats",currentChat,"messages"),{
     text:msg.value,
     uid:ME.uid,
+    seen:false,
+    deleted:false,
     time:Date.now()
   });
 
   msg.value="";
+};
+
+// typing
+msg.oninput=()=>{
+  if(!currentChat)return;
+  setDoc(doc(db,"typing",currentChat),{uid:ME.uid});
+  setTimeout(()=>setDoc(doc(db,"typing",currentChat),{}),1000);
+};
+
+// block
+blockBtn.onclick=async()=>{
+  let ref=doc(db,"users",ME.uid);
+  let arr=myData.blocked||[];
+
+  if(arr.includes(currentUser.uid)){
+    arr=arr.filter(x=>x!==currentUser.uid);
+    alert("Unblocked");
+  }else{
+    arr.push(currentUser.uid);
+    alert("Blocked");
+  }
+
+  myData.blocked=arr;
+  await updateDoc(ref,{blocked:arr});
 };
 
 // NAV
@@ -278,5 +342,6 @@ backBtn2.onclick=()=>show("homeScreen");
 logoutBtn.onclick=()=>signOut(auth);
 
 </script>
+
 </body>
-</html>
+  </html>
