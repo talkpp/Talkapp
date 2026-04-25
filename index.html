@@ -9,36 +9,31 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 .screen{display:none;height:100vh;flex-direction:column}
 .active{display:flex}
 
-/* LOGIN */
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
-#box{background:#fff;padding:25px;border-radius:12px;width:280px;text-align:center}
+#box{background:#fff;padding:25px;border-radius:12px;text-align:center}
 
-/* HEADER */
-.header{background:#075E54;color:#fff;padding:15px;font-size:18px}
-
-/* CHAT LIST */
+.header{background:#075E54;color:#fff;padding:15px}
 .chatItem{padding:12px;border-bottom:1px solid #ddd;cursor:pointer}
 .chatItem:hover{background:#eee}
-.name{font-weight:bold}
-.last{font-size:13px;color:gray}
 
-/* CHAT */
 #messages{flex:1;overflow:auto;padding:10px;background:#ece5dd}
-.msg{padding:10px;border-radius:10px;margin:5px;max-width:65%}
+.msg{padding:10px;border-radius:10px;margin:5px;max-width:65%;position:relative}
 .me{background:#dcf8c6;margin-left:auto}
 .other{background:#fff}
 
-.tick{font-size:12px;margin-left:5px;color:gray}
-.seen{color:blue}
+.tick{font-size:12px;margin-left:5px}
+.blue{color:blue}
+
+.reaction{position:absolute;bottom:-10px;right:10px;font-size:14px}
 
 #input{display:flex;padding:10px;background:#fff}
 #input input{flex:1;padding:10px;border-radius:20px;border:1px solid #ccc}
+#replyBox{background:#eee;padding:5px;display:none}
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="login">
   <div id="box">
     <h2>TalkApp</h2>
@@ -46,14 +41,12 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
   </div>
 </div>
 
-<!-- USERNAME -->
 <div id="usernameScreen" class="screen">
   <h3>Choose Username</h3>
   <input id="usernameInput">
   <button id="saveUsername">Save</button>
 </div>
 
-<!-- HOME -->
 <div id="homeScreen" class="screen">
   <div class="header">
     TalkApp
@@ -63,16 +56,12 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
   <div id="chatList"></div>
 </div>
 
-<!-- SEARCH -->
 <div id="searchScreen" class="screen">
-  <div class="header">
-    <span id="backBtn">⬅</span> Search
-  </div>
-  <input id="searchInput" placeholder="Search user...">
+  <div class="header"><span id="backBtn">⬅</span> Search</div>
+  <input id="searchInput">
   <div id="userList"></div>
 </div>
 
-<!-- CHAT -->
 <div id="chatScreen" class="screen">
   <div class="header">
     <span id="backBtn2">⬅</span>
@@ -83,6 +72,8 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
   <div id="status"></div>
   <div id="typing"></div>
   <div id="messages"></div>
+
+  <div id="replyBox"></div>
 
   <div id="input">
     <input id="msg">
@@ -102,10 +93,10 @@ const app = initializeApp({
   projectId: "talkapp-70bee"
 });
 
-const auth = getAuth();
-const db = getFirestore();
+const auth=getAuth();
+const db=getFirestore();
 
-let ME,currentUser,currentChat=null,unsub=null,myData=null;
+let ME,currentUser,currentChat,replyMsg=null,myData=null,unsub=null;
 
 // UI
 function show(id){
@@ -114,95 +105,71 @@ function show(id){
 }
 
 // LOGIN
-googleBtn.onclick = async()=>{
-  await signInWithPopup(auth,new GoogleAuthProvider());
-};
+googleBtn.onclick=()=>signInWithPopup(auth,new GoogleAuthProvider());
 
 // AUTH
-onAuthStateChanged(auth, async user=>{
-  if(user){
-    document.getElementById("login").style.display="none";
-    ME=user;
+onAuthStateChanged(auth,async user=>{
+if(user){
+document.getElementById("login").style.display="none";
+ME=user;
 
-    let ref=doc(db,"users",user.uid);
-    let snap=await getDoc(ref);
+let ref=doc(db,"users",user.uid);
+let snap=await getDoc(ref);
 
-    if(!snap.exists()){
-      await setDoc(ref,{name:"",uid:user.uid,blocked:[],lastSeen:Date.now()});
-      show("usernameScreen");
-      return;
-    }
+if(!snap.exists()){
+await setDoc(ref,{name:"",uid:user.uid,blocked:[],lastSeen:Date.now(),online:true});
+show("usernameScreen");
+return;
+}
 
-    myData=snap.data();
+myData=snap.data();
 
-    if(!myData.name){
-      show("usernameScreen");
-    }else{
-      show("homeScreen");
-      loadChats();
-    }
+if(!myData.name) show("usernameScreen");
+else{show("homeScreen");loadChats();}
 
-    setInterval(()=>{
-      updateDoc(doc(db,"users",ME.uid),{lastSeen:Date.now()});
-    },5000);
+setInterval(()=>updateDoc(doc(db,"users",ME.uid),{lastSeen:Date.now(),online:true}),5000);
 
-  }else{
-    document.getElementById("login").style.display="flex";
-  }
+window.onbeforeunload=()=>{
+updateDoc(doc(db,"users",ME.uid),{online:false,lastSeen:Date.now()});
+};
+
+}else{
+document.getElementById("login").style.display="flex";
+}
 });
 
 // USERNAME
-saveUsername.onclick = async()=>{
-  let name=usernameInput.value.trim().toLowerCase();
-  if(name.length<3)return alert("Min 3 chars");
-
-  let snap=await getDocs(collection(db,"users"));
-  let taken=false;
-
-  snap.forEach(d=>{
-    if(d.data().name===name) taken=true;
-  });
-
-  if(taken)return alert("Taken");
-
-  await updateDoc(doc(db,"users",ME.uid),{name:name});
-  show("homeScreen");
-  loadChats();
+saveUsername.onclick=async()=>{
+let name=usernameInput.value.toLowerCase();
+let snap=await getDocs(collection(db,"users"));
+let taken=false;
+snap.forEach(d=>{if(d.data().name===name)taken=true});
+if(taken)return alert("Taken");
+await updateDoc(doc(db,"users",ME.uid),{name:name});
+show("homeScreen");loadChats();
 };
 
 // CHAT LIST
 function loadChats(){
-  onSnapshot(collection(db,"chats"),async snap=>{
-    chatList.innerHTML="";
+onSnapshot(collection(db,"chats"),async snap=>{
+chatList.innerHTML="";
+for(let d of snap.docs){
+let id=d.id;
+if(!id.includes(ME.uid))continue;
 
-    for(let d of snap.docs){
-      let id=d.id;
-      if(!id.includes(ME.uid)) continue;
+let other=id.replace(ME.uid,"").replace("_","");
+let udoc=await getDoc(doc(db,"users",other));
+if(!udoc.exists())continue;
 
-      let other=id.replace(ME.uid,"").replace("_","");
-      let udoc=await getDoc(doc(db,"users",other));
-      if(!udoc.exists()) continue;
+let u=udoc.data();
 
-      let u=udoc.data();
-
-      let lastMsg="";
-      let msgs=await getDocs(query(collection(db,"chats",id,"messages"),orderBy("time","desc")));
-
-      msgs.forEach(m=>{
-        if(!lastMsg){
-          let data=m.data();
-          lastMsg=data.deleted?"deleted":data.text;
-        }
-      });
-
-      let div=document.createElement("div");
-      div.className="chatItem";
-      div.innerHTML=`<div class="name">${u.name}</div><div class="last">${lastMsg}</div>`;
-      div.onclick=()=>openChat(u);
-
-      chatList.appendChild(div);
-    }
-  });
+let div=document.createElement("div");
+div.className="chatItem";
+div.innerText=u.name;
+div.onclick=()=>openChat(u);
+chatList.appendChild(div);
+}
+});
 }
 
 // SEARCH
@@ -210,138 +177,135 @@ searchBtn.onclick=()=>show("searchScreen");
 backBtn.onclick=()=>show("homeScreen");
 
 searchInput.onkeyup=async()=>{
-  let term=searchInput.value.toLowerCase();
-  userList.innerHTML="";
-  if(!term)return;
-
-  let snap=await getDocs(collection(db,"users"));
-
-  snap.forEach(d=>{
-    let u=d.data();
-    if(u.uid===ME.uid)return;
-
-    if(u.name.includes(term)){
-      let div=document.createElement("div");
-      div.className="chatItem";
-      div.innerText=u.name;
-      div.onclick=()=>openChat(u);
-      userList.appendChild(div);
-    }
-  });
+let term=searchInput.value.toLowerCase();
+userList.innerHTML="";
+let snap=await getDocs(collection(db,"users"));
+snap.forEach(d=>{
+let u=d.data();
+if(u.uid!==ME.uid && u.name.includes(term)){
+let div=document.createElement("div");
+div.className="chatItem";
+div.innerText=u.name;
+div.onclick=()=>openChat(u);
+userList.appendChild(div);
+}
+});
 };
 
-// CHAT
+// OPEN CHAT
 function openChat(u){
 
-  if(myData.blocked?.includes(u.uid)){
-    alert("User blocked");
-    return;
-  }
+if(myData.blocked?.includes(u.uid)) return alert("Blocked");
 
-  currentUser=u;
-  currentChat=[ME.uid,u.uid].sort().join("_");
-  chatName.innerText=u.name;
-  show("chatScreen");
+currentUser=u;
+currentChat=[ME.uid,u.uid].sort().join("_");
+chatName.innerText=u.name;
+show("chatScreen");
 
-  onSnapshot(doc(db,"users",u.uid),d=>{
-    let diff=(Date.now()-d.data().lastSeen)/1000;
-    status.innerText=diff<5?"online":"last seen "+Math.floor(diff)+"s";
-  });
+// online
+onSnapshot(doc(db,"users",u.uid),d=>{
+let data=d.data();
+status.innerText=data.online?"online":"last seen";
+});
 
-  onSnapshot(doc(db,"typing",currentChat),d=>{
-    typing.innerText=(d.exists() && d.data().uid!==ME.uid)?"typing...":"";
-  });
+// typing
+onSnapshot(doc(db,"typing",currentChat),d=>{
+if(!d.exists()) return typing.innerText="";
+let t=d.data();
+typing.innerText=(t.uid!==ME.uid && Date.now()-t.time<2000)?"typing...":"";
+});
 
-  if(unsub)unsub();
+// messages
+if(unsub)unsub();
 
-  unsub=onSnapshot(query(collection(db,"chats",currentChat,"messages"),orderBy("time")),snap=>{
-    messages.innerHTML="";
+unsub=onSnapshot(query(collection(db,"chats",currentChat,"messages"),orderBy("time")),snap=>{
+messages.innerHTML="";
+snap.forEach(docu=>{
+let m=docu.data();
 
-    snap.forEach(docu=>{
-      let m=docu.data();
+let div=document.createElement("div");
+div.className="msg "+(m.uid===ME.uid?"me":"other");
 
-      let div=document.createElement("div");
-      div.className="msg "+(m.uid===ME.uid?"me":"other");
+let tick=m.uid===ME.uid?(m.seen?"<span class='tick blue'>✔✔</span>":"✔"):"";
 
-      let tick="";
-      if(m.uid===ME.uid){
-        tick=m.seen?"✔✔":"✔";
-      }
+let replyHTML=m.reply?`<small>↩ ${m.reply}</small><br>`:"";
 
-      div.innerHTML=(m.deleted?"<i>deleted</i>":m.text)+
-        `<span class="tick ${m.seen?"seen":""}">${tick}</span>`;
+div.innerHTML=replyHTML+(m.deleted?"<i>deleted</i>":m.text)+tick;
 
-      if(m.uid!==ME.uid && !m.seen){
-        updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{seen:true});
-      }
+if(m.reaction){
+let r=document.createElement("div");
+r.className="reaction";
+r.innerText=m.reaction;
+div.appendChild(r);
+}
 
-      div.oncontextmenu=e=>{
-        e.preventDefault();
-        if(m.uid===ME.uid){
-          updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{deleted:true});
-        }
-      };
+// seen
+if(m.uid!==ME.uid && !m.seen){
+updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{seen:true});
+}
 
-      messages.appendChild(div);
-    });
+// reply
+div.onclick=()=>{
+replyMsg=m.text;
+replyBox.style.display="block";
+replyBox.innerText="Reply: "+m.text;
+};
 
-    messages.scrollTop=messages.scrollHeight;
-  });
+// reaction
+div.oncontextmenu=e=>{
+e.preventDefault();
+let emoji=prompt("React: 😂 ❤️ 👍 🔥");
+if(emoji){
+updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{reaction:emoji});
+}
+};
+
+messages.appendChild(div);
+});
+messages.scrollTop=messages.scrollHeight;
+});
 }
 
 // SEND
-sendBtn.onclick = async()=>{
-  if(!msg.value || !currentChat)return;
+sendBtn.onclick=async()=>{
+if(!msg.value||!currentChat)return;
 
-  if(myData.blocked?.includes(currentUser.uid)){
-    alert("Blocked");
-    return;
-  }
+await setDoc(doc(db,"chats",currentChat),{users:currentChat.split("_")},{merge:true});
 
-  await setDoc(doc(db,"chats",currentChat),{
-    users: currentChat.split("_")
-  },{merge:true});
+await addDoc(collection(db,"chats",currentChat,"messages"),{
+text:msg.value,
+uid:ME.uid,
+seen:false,
+deleted:false,
+reply:replyMsg||null,
+time:Date.now()
+});
 
-  await addDoc(collection(db,"chats",currentChat,"messages"),{
-    text:msg.value,
-    uid:ME.uid,
-    seen:false,
-    deleted:false,
-    time:Date.now()
-  });
-
-  msg.value="";
+replyMsg=null;
+replyBox.style.display="none";
+msg.value="";
 };
 
 // typing
 msg.oninput=()=>{
-  if(!currentChat)return;
-  setDoc(doc(db,"typing",currentChat),{uid:ME.uid});
-  setTimeout(()=>setDoc(doc(db,"typing",currentChat),{}),1000);
+if(!currentChat)return;
+setDoc(doc(db,"typing",currentChat),{uid:ME.uid,time:Date.now()});
 };
 
 // block
 blockBtn.onclick=async()=>{
-  let ref=doc(db,"users",ME.uid);
-  let arr=myData.blocked||[];
-
-  if(arr.includes(currentUser.uid)){
-    arr=arr.filter(x=>x!==currentUser.uid);
-    alert("Unblocked");
-  }else{
-    arr.push(currentUser.uid);
-    alert("Blocked");
-  }
-
-  myData.blocked=arr;
-  await updateDoc(ref,{blocked:arr});
+let arr=myData.blocked||[];
+if(arr.includes(currentUser.uid))arr=arr.filter(x=>x!==currentUser.uid);
+else arr.push(currentUser.uid);
+myData.blocked=arr;
+await updateDoc(doc(db,"users",ME.uid),{blocked:arr});
+alert("Updated");
 };
 
-// NAV
+// nav
 backBtn2.onclick=()=>show("homeScreen");
 logoutBtn.onclick=()=>signOut(auth);
 
 </script>
-
 </body>
-  </html>
+</html>
