@@ -1,58 +1,52 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TalkZone</title>
+<title>TalkZone</title><!-- Firebase CDN --><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial;height:100vh}
 
-<!-- ✅ Firebase CDN (stable version) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-<style>
-body{margin:0;font-family:sans-serif;height:100vh}
+/* LOGIN */
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
-#box{background:#fff;padding:20px;border-radius:10px;width:300px}
-input{width:100%;padding:10px;margin:8px 0}
-button{width:100%;padding:10px;background:#667eea;color:#fff;border:none}
+#loginBox{background:#fff;padding:25px;border-radius:10px;width:300px}
+#login input{width:100%;padding:10px;margin:10px 0}
+#login button{width:100%;padding:10px;background:#667eea;color:#fff;border:none;cursor:pointer}
+
+/* APP */
 #app{display:none;height:100vh;display:flex}
-#users{width:30%;background:#eee;overflow:auto}
-.user{padding:10px;border-bottom:1px solid #ccc;cursor:pointer}
+
+/* SIDEBAR */
+#sidebar{width:30%;background:#f0f2f5;overflow:auto}
+.user{padding:15px;border-bottom:1px solid #ddd;cursor:pointer}
+.user:hover{background:#ddd}
+
+/* CHAT */
 #chat{flex:1;display:flex;flex-direction:column}
-#msgs{flex:1;padding:10px;overflow:auto}
-.msg{margin:5px;padding:8px;border-radius:8px;max-width:60%}
+#messages{flex:1;padding:10px;overflow:auto}
+.msg{margin:5px 0;padding:8px;border-radius:10px;max-width:60%}
 .me{background:#dcf8c6;margin-left:auto}
 .other{background:#fff}
-#send{display:flex}
-#send input{flex:1}
-</style>
-</head>
 
-<body>
-
-<div id="login">
-  <div id="box">
-    <h3>TalkZone</h3>
-    <input id="u" placeholder="username">
-    <input id="p" type="password" placeholder="password">
+#input{display:flex;padding:10px;border-top:1px solid #ccc}
+#input input{flex:1;padding:10px}
+#input button{padding:10px;cursor:pointer}
+</style></head><body><!-- LOGIN --><div id="login">
+  <div id="loginBox">
+    <h2>TalkZone</h2>
+    <input id="u" placeholder="Username (min 3)">
+    <input id="p" type="password" placeholder="Password (min 6)">
     <button onclick="login()">Login / Signup</button>
   </div>
-</div>
-
-<div id="app">
-  <div id="users"></div>
-  <div id="chat">
-    <div id="msgs"></div>
-    <div id="send">
-      <input id="m" placeholder="message">
+</div><!-- APP --><div id="app">
+  <div id="sidebar"></div>  <div id="chat">
+    <div id="messages"></div>
+    <div id="input">
+      <input id="msg" placeholder="Type message">
       <button onclick="send()">Send</button>
     </div>
   </div>
-</div>
-
-<script>
-// ✅ YOUR FIREBASE CONFIG
+</div><script>
+// 🔥 Firebase Config (your original)
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -64,41 +58,64 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let ME=null;
-let chatId=null;
+let currentChat=null;
 let unsub=null;
 
-// 🔐 LOGIN / SIGNUP FIXED
+// 🔐 LOGIN / SIGNUP (FINAL FIXED LOGIC)
 async function login(){
   let u=document.getElementById("u").value.trim().toLowerCase();
   let p=document.getElementById("p").value;
 
-  if(!u || p.length<6){
+  if(u.length<3 || p.length<6){
     alert("Invalid input");
+    return;
+  }
+
+  if(u.includes(" ")){
+    alert("No spaces allowed");
     return;
   }
 
   let email=u+"@app.com";
 
   try{
+    // TRY LOGIN FIRST
     await auth.signInWithEmailAndPassword(email,p);
+    console.log("Login success");
+
   }catch(e){
 
-    if(e.code==="auth/user-not-found"){
-      let cred=await auth.createUserWithEmailAndPassword(email,p);
+    console.log("Auth error:", e.code);
 
-      // ✅ UID BASED SAVE
-      await db.collection("users").doc(cred.user.uid).set({
-        name:u,
-        uid:cred.user.uid
-      });
+    // IF USER DOESN'T EXIST → CREATE
+    if(e.code==="auth/user-not-found"){
+      try{
+        let cred=await auth.createUserWithEmailAndPassword(email,p);
+
+        await db.collection("users").doc(cred.user.uid).set({
+          name:u,
+          uid:cred.user.uid
+        });
+
+        alert("Account created ✅");
+
+      }catch(err){
+        alert(err.message);
+      }
+
+    }else if(e.code==="auth/wrong-password"){
+      alert("Wrong password ❌");
+
+    }else if(e.code==="auth/invalid-credential"){
+      alert("Invalid login ❌");
 
     }else{
-      alert("Wrong password");
+      alert(e.message);
     }
   }
 }
 
-// 🔁 AUTH STATE
+// 🔄 AUTH STATE
 auth.onAuthStateChanged(user=>{
   if(user){
     ME=user;
@@ -111,7 +128,7 @@ auth.onAuthStateChanged(user=>{
 // 👥 LOAD USERS
 function loadUsers(){
   db.collection("users").onSnapshot(snap=>{
-    let box=document.getElementById("users");
+    let box=document.getElementById("sidebar");
     box.innerHTML="";
 
     snap.forEach(d=>{
@@ -121,8 +138,8 @@ function loadUsers(){
       let div=document.createElement("div");
       div.className="user";
       div.innerText=u.name;
-      div.onclick=()=>openChat(u.uid);
 
+      div.onclick=()=>openChat(u.uid);
       box.appendChild(div);
     });
   });
@@ -130,16 +147,16 @@ function loadUsers(){
 
 // 💬 OPEN CHAT
 function openChat(uid){
-  chatId=[ME.uid,uid].sort().join("_");
+  currentChat=[ME.uid,uid].sort().join("_");
 
   if(unsub) unsub();
 
   unsub=db.collection("chats")
-    .doc(chatId)
+    .doc(currentChat)
     .collection("messages")
     .orderBy("time")
     .onSnapshot(snap=>{
-      let box=document.getElementById("msgs");
+      let box=document.getElementById("messages");
       box.innerHTML="";
 
       snap.forEach(d=>{
@@ -154,18 +171,19 @@ function openChat(uid){
     });
 }
 
-// 📤 SEND
+// 📩 SEND MESSAGE
 async function send(){
-  let input=document.getElementById("m");
+  let input=document.getElementById("msg");
   let text=input.value.trim();
-  if(!text || !chatId) return;
 
-  await db.collection("chats").doc(chatId).set({
-    users: chatId.split("_")
+  if(!text || !currentChat) return;
+
+  await db.collection("chats").doc(currentChat).set({
+    users: currentChat.split("_")
   },{merge:true});
 
   await db.collection("chats")
-    .doc(chatId)
+    .doc(currentChat)
     .collection("messages")
     .add({
       text:text,
@@ -175,7 +193,5 @@ async function send(){
 
   input.value="";
 }
-</script>
-
-</body>
-</html>
+</script></body>
+  </html>
