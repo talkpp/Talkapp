@@ -8,7 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-    body{margin:0;font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333;}
+    body{margin:0;font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333;overflow:hidden;height:100vh;}
     
     /* LOGIN */
     #login{display:flex;justify-content:center;align-items:center;height:100vh;background:linear-gradient(135deg,#667eea,#764ba2);}
@@ -29,40 +29,117 @@
     /* SIDEBAR */
     #sidebar{width:320px;background:#fff;border-right:1px solid #ddd;display:flex;flex-direction:column;}
     #searchBox{padding:15px;background:#f8f9fa;border-bottom:1px solid #ddd;}
-    #searchInput{width:100%;padding:12px;border:1px solid #ddd;border-radius:25px;font-size:15px;outline:none;}
+    #searchInput{width:100%;padding:12px 20px;border:1px solid #ddd;border-radius:25px;font-size:15px;outline:none;}
     
     #usersList{flex:1;overflow:auto;}
-    .user{padding:14px 20px;border-bottom:1px solid #eee;cursor:pointer;display:flex;align-items:center;gap:12px;}
+    .user{padding:14px 20px;border-bottom:1px solid #eee;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background 0.2s;}
     .user:hover{background:#f0f2f5;}
     .user.active{background:#e3f2fd;}
-    .avatar{width:45px;height:45px;background:#667eea;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;}
-    .userInfo{flex:1;}
-    .username{font-weight:600;}
-    .status{font-size:12px;color:#888;}
+    .avatar{width:48px;height:48px;background:#667eea;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px;flex-shrink:0;}
+    .userInfo{flex:1;min-width:0;}
+    .username{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .status{font-size:13px;color:#888;}
 
     /* CHAT AREA */
-    #chatArea{flex:1;display:flex;flex-direction:column;background:#f0f2f5;}
+    #chatArea{flex:1;display:flex;flex-direction:column;background:#f0f2f5;position:relative;}
+    
     #chatHeader{padding:15px 20px;background:white;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:12px;box-shadow:0 2px 5px rgba(0,0,0,0.05);}
-    #chatHeader .avatar{width:40px;height:40px;}
+    #chatHeader .avatar{width:42px;height:42px;font-size:18px;}
     #chatWith{font-weight:600;font-size:18px;}
-    #blockBtn{padding:8px 16px;background:#ff5252;color:white;border:none;border-radius:20px;cursor:pointer;font-size:14px;margin-left:auto;}
-    #blockBtn.blocked{background:#666;}
+    #chatStatus{font-size:13px;color:#4caf50;}
+    
+    #blockBtn{margin-left:auto;padding:8px 18px;background:#ff5252;color:white;border:none;border-radius:20px;cursor:pointer;font-size:14px;font-weight:500;}
+    #blockBtn.blocked{background:#666666;}
 
-    #messages{flex:1;padding:20px;overflow:auto;display:flex;flex-direction:column;gap:10px;background:url('https://www.transparenttextures.com/patterns/chat.png');}
-    .msg{max-width:70%;padding:12px 16px;border-radius:18px;position:relative;line-height:1.4;}
-    .me{background:#dcf8c6;align-self:flex-end;border-bottom-right-radius:4px;}
-    .other{background:white;align-self:flex-start;border-bottom-left-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.1);}
-    .msgTime{font-size:11px;color:#888;margin-top:4px;text-align:right;}
+    #messages{flex:1;padding:20px 20px 90px;overflow:auto;display:flex;flex-direction:column;gap:12px;background:#f0f2f5 url('https://www.transparenttextures.com/patterns/chat.png');}
+    .msg{
+        max-width:75%;
+        padding:12px 16px;
+        border-radius:18px;
+        position:relative;
+        line-height:1.45;
+        font-size:15.5px;
+        cursor:pointer;
+    }
+    .me{background:#dcf8c6;align-self:flex-end;border-bottom-right-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+    .other{background:#ffffff;align-self:flex-start;border-bottom-left-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+    .msgTime{font-size:11px;color:#777;margin-top:5px;opacity:0.85;}
+    
+    /* Delete Option */
+    .delete-option {
+        position: absolute;
+        top: -30px;
+        right: 10px;
+        background: #ff5252;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: none;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        white-space: nowrap;
+    }
+    .msg:hover .delete-option { display: block; }
 
-    #inputArea{background:white;padding:12px 20px;border-top:1px solid #ddd;display:flex;gap:10px;}
-    #inputArea input{flex:1;padding:14px 20px;border:1px solid #ddd;border-radius:30px;font-size:16px;outline:none;}
-    #inputArea button{padding:0 24px;background:#667eea;color:white;border:none;border-radius:30px;cursor:pointer;font-weight:600;}
+    /* INPUT AREA - FIXED AT BOTTOM */
+    #inputArea{
+        position:absolute;
+        bottom:0;
+        left:0;
+        right:0;
+        background:white;
+        padding:12px 16px;
+        border-top:1px solid #ddd;
+        display:flex;
+        gap:10px;
+        box-shadow:0 -2px 10px rgba(0,0,0,0.08);
+    }
+    #inputArea input{
+        flex:1;
+        padding:14px 20px;
+        border:1px solid #ddd;
+        border-radius:30px;
+        font-size:16px;
+        outline:none;
+    }
+    #inputArea button{
+        padding:0 26px;
+        background:#667eea;
+        color:white;
+        border:none;
+        border-radius:30px;
+        cursor:pointer;
+        font-weight:600;
+        font-size:15px;
+    }
 
-    /* BLOCKED MODAL */
-    #blockedModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);justify-content:center;align-items:center;z-index:1000;}
-    #blockedBox{background:white;padding:25px;border-radius:16px;width:340px;}
-    #blockedList{max-height:300px;overflow:auto;margin:15px 0;}
-    .blockedUser{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee;}
+    /* Blocked Modal */
+    #blockedModal{
+        display:none;
+        position:fixed;
+        top:0;left:0;
+        width:100%;height:100%;
+        background:rgba(0,0,0,0.65);
+        justify-content:center;
+        align-items:center;
+        z-index:1000;
+    }
+    #blockedBox{
+        background:white;
+        padding:25px;
+        border-radius:16px;
+        width:340px;
+        max-height:85vh;
+        overflow:auto;
+    }
+    .blockedUser{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:12px 0;
+        border-bottom:1px solid #eee;
+    }
 </style>
 </head>
 <body>
@@ -74,7 +151,6 @@
     <input id="u" placeholder="Username (min 3 chars)">
     <input id="p" type="password" placeholder="Password (min 6 chars)">
     <button onclick="login()">Login / Sign Up</button>
-    <p style="font-size:12px;color:#666;margin-top:15px;">Premium feel chat experience</p>
   </div>
 </div>
 
@@ -83,7 +159,7 @@
   <div id="header">
     <h1>TalkZone</h1>
     <div id="userInfo"></div>
-    <button onclick="showBlockedModal()" style="background:none;border:none;color:white;cursor:pointer;">Blocked Users</button>
+    <button onclick="showBlockedModal()" style="background:none;border:none;color:white;font-size:14px;cursor:pointer;">Blocked</button>
   </div>
 
   <div id="main">
@@ -95,19 +171,20 @@
       <div id="usersList"></div>
     </div>
 
-    <!-- CHAT -->
+    <!-- CHAT AREA -->
     <div id="chatArea">
       <div id="chatHeader" style="display:none;">
         <div class="avatar" id="chatAvatar"></div>
-        <div>
-          <div id="chatWith"></div>
-          <div class="status" id="chatStatus">online</div>
+        <div style="flex:1;">
+          <div id="chatWith" style="font-weight:600;"></div>
+          <div id="chatStatus" class="status">online</div>
         </div>
         <button id="blockBtn" onclick="toggleBlock()">Block User</button>
       </div>
 
       <div id="messages"></div>
 
+      <!-- FIXED INPUT -->
       <div id="inputArea" style="display:none;">
         <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
         <button onclick="sendMessage()">Send</button>
@@ -116,17 +193,17 @@
   </div>
 </div>
 
-<!-- Blocked Users Modal -->
+<!-- Blocked Modal -->
 <div id="blockedModal">
   <div id="blockedBox">
-    <h3>Blocked Users</h3>
-    <div id="blockedList"></div>
-    <button onclick="hideBlockedModal()" style="width:100%;padding:12px;background:#667eea;color:white;border:none;border-radius:8px;margin-top:10px;">Close</button>
+    <h3 style="margin-top:0;">Blocked Users</h3>
+    <div id="blockedList" style="margin:15px 0;"></div>
+    <button onclick="hideBlockedModal()" style="width:100%;padding:12px;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;">Close</button>
   </div>
 </div>
 
 <script>
-// 🔥 Firebase Config (same as yours)
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -143,15 +220,15 @@ let currentChatUser = null;
 let unsubMessages = null;
 let unsubUsers = null;
 let allUsers = [];
-let blockedUsers = new Set(); // uid of blocked users
+let blockedUsers = new Set();
 
-// 🔐 LOGIN / SIGNUP
+// Login
 async function login(){
   let u = document.getElementById("u").value.trim().toLowerCase();
   let p = document.getElementById("p").value;
 
   if(u.length < 3 || p.length < 6){
-    alert("Username min 3 chars, Password min 6 chars");
+    alert("Username minimum 3 characters\nPassword minimum 6 characters");
     return;
   }
 
@@ -161,29 +238,25 @@ async function login(){
     await auth.signInWithEmailAndPassword(email, p);
   }catch(e){
     if(e.code === "auth/user-not-found"){
-      try{
-        let cred = await auth.createUserWithEmailAndPassword(email, p);
-        await db.collection("users").doc(cred.user.uid).set({
-          name: u,
-          uid: cred.user.uid,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }catch(err){
-        alert("Signup failed: " + err.message);
-      }
+      let cred = await auth.createUserWithEmailAndPassword(email, p);
+      await db.collection("users").doc(cred.user.uid).set({
+        name: u,
+        uid: cred.user.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
     } else {
-      alert("Wrong password or error: " + e.message);
+      alert("Login failed. Check password.");
     }
   }
 }
 
-// 🔄 AUTH STATE
-auth.onAuthStateChanged(async user => {
+// Auth State
+auth.onAuthStateChanged(async (user) => {
   if(user){
     ME = user;
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "flex";
-    document.getElementById("userInfo").innerText = "Logged in as: " + (ME.email ? ME.email.split('@')[0] : "User");
+    document.getElementById("userInfo").innerText = ME.email ? ME.email.split('@')[0] : "You";
 
     await loadBlockedUsers();
     loadAllUsers();
@@ -193,36 +266,34 @@ auth.onAuthStateChanged(async user => {
   }
 });
 
-// Load blocked users for current user
+// Load Blocked Users
 async function loadBlockedUsers(){
   blockedUsers.clear();
   try{
     const snap = await db.collection("users").doc(ME.uid).collection("blocked").get();
-    snap.forEach(doc => {
-      if(doc.data().blocked) blockedUsers.add(doc.id);
-    });
-  }catch(e){}
+    snap.forEach(doc => blockedUsers.add(doc.id));
+  } catch(e){}
 }
 
-// 👥 Load All Users (with real-time)
+// Load Users
 function loadAllUsers(){
   if(unsubUsers) unsubUsers();
 
   unsubUsers = db.collection("users").onSnapshot(snap => {
     allUsers = [];
-    let box = document.getElementById("usersList");
+    const box = document.getElementById("usersList");
     box.innerHTML = "";
 
-    snap.forEach(d => {
-      let u = d.data();
+    snap.forEach(doc => {
+      const u = doc.data();
       if(u.uid === ME.uid) return;
 
       allUsers.push(u);
 
-      let div = document.createElement("div");
+      const div = document.createElement("div");
       div.className = "user";
       div.innerHTML = `
-        <div class="avatar">${u.name[0].toUpperCase()}</div>
+        <div class="avatar">${u.name.charAt(0).toUpperCase()}</div>
         <div class="userInfo">
           <div class="username">${u.name}</div>
           <div class="status">Tap to chat</div>
@@ -234,18 +305,18 @@ function loadAllUsers(){
   });
 }
 
-// Filter users by search
+// Search Filter
 function filterUsers(){
-  let term = document.getElementById("searchInput").value.toLowerCase().trim();
-  let box = document.getElementById("usersList");
+  const term = document.getElementById("searchInput").value.toLowerCase().trim();
+  const box = document.getElementById("usersList");
   box.innerHTML = "";
 
   allUsers.forEach(u => {
     if(u.name.toLowerCase().includes(term)){
-      let div = document.createElement("div");
+      const div = document.createElement("div");
       div.className = "user";
       div.innerHTML = `
-        <div class="avatar">${u.name[0].toUpperCase()}</div>
+        <div class="avatar">${u.name.charAt(0).toUpperCase()}</div>
         <div class="userInfo">
           <div class="username">${u.name}</div>
           <div class="status">Tap to chat</div>
@@ -257,45 +328,47 @@ function filterUsers(){
   });
 }
 
-// 💬 Open Chat with user
-async function openChat(user){
+// Open Chat
+function openChat(user){
   currentChatUser = user;
   currentChatId = [ME.uid, user.uid].sort().join("_");
 
-  // Update header
-  document.getElementById("chatHeader").style.display = "flex";
-  document.getElementById("chatAvatar").innerText = user.name[0].toUpperCase();
+  // Show chat header
+  const header = document.getElementById("chatHeader");
+  header.style.display = "flex";
+  document.getElementById("chatAvatar").innerText = user.name.charAt(0).toUpperCase();
   document.getElementById("chatWith").innerText = user.name;
 
-  let isBlocked = blockedUsers.has(user.uid);
-  let blockBtn = document.getElementById("blockBtn");
+  const isBlocked = blockedUsers.has(user.uid);
+  const blockBtn = document.getElementById("blockBtn");
   blockBtn.textContent = isBlocked ? "Unblock User" : "Block User";
   blockBtn.classList.toggle("blocked", isBlocked);
 
   document.getElementById("inputArea").style.display = "flex";
 
-  // Load messages
+  // Load messages with delete functionality
   if(unsubMessages) unsubMessages();
 
-  unsubMessages = db.collection("chats")
-    .doc(currentChatId)
+  unsubMessages = db.collection("chats").doc(currentChatId)
     .collection("messages")
     .orderBy("time", "asc")
     .onSnapshot(snap => {
-      let box = document.getElementById("messages");
+      const box = document.getElementById("messages");
       box.innerHTML = "";
 
-      snap.forEach(d => {
-        let m = d.data();
-        // Skip messages if the other user is blocked (hide their messages)
+      snap.forEach(doc => {
+        const m = doc.data();
         if(m.uid !== ME.uid && blockedUsers.has(m.uid)) return;
 
-        let div = document.createElement("div");
+        const div = document.createElement("div");
         div.className = `msg ${m.uid === ME.uid ? "me" : "other"}`;
+        div.dataset.messageId = doc.id;  // Store message ID
         div.innerHTML = `
           ${m.text}
-          <div class="msgTime">${m.time ? m.time.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</div>
+          <div class="msgTime">${m.time ? new Date(m.time.toDate()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</div>
+          \( {m.uid === ME.uid ? `<div class="delete-option" onclick="deleteMessage(' \){doc.id}'); event.stopImmediatePropagation()">Delete for everyone</div>` : ''}
         `;
+        div.onclick = () => {}; // prevent accidental clicks
         box.appendChild(div);
       });
 
@@ -303,93 +376,101 @@ async function openChat(user){
     });
 }
 
-// 📩 Send Message (prevent sending to blocked user)
-async function sendMessage(){
-  let text = document.getElementById("msgInput").value.trim();
-  if(!text || !currentChatId || !currentChatUser) return;
+// Delete Message for Everyone
+async function deleteMessage(messageId) {
+  if(!currentChatId || !messageId) return;
+  
+  if(!confirm("Delete this message for everyone?")) return;
 
-  // Prevent sending if blocked
-  if(blockedUsers.has(currentChatUser.uid)){
-    alert("You have blocked this user. Unblock to send messages.");
-    return;
-  }
-
-  try{
+  try {
     await db.collection("chats")
       .doc(currentChatId)
       .collection("messages")
-      .add({
-        text: text,
-        uid: ME.uid,
-        time: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-    document.getElementById("msgInput").value = "";
-  }catch(e){
-    console.error(e);
+      .doc(messageId)
+      .delete();
+    
+    // No need to manually update UI - onSnapshot will handle it automatically
+  } catch(e) {
+    console.error("Delete failed:", e);
+    alert("Failed to delete message");
   }
 }
 
-// Toggle Block / Unblock
+// Send Message
+async function sendMessage(){
+  const input = document.getElementById("msgInput");
+  const text = input.value.trim();
+
+  if(!text || !currentChatId || !currentChatUser) return;
+  if(blockedUsers.has(currentChatUser.uid)){
+    alert("You have blocked this user. Unblock first.");
+    return;
+  }
+
+  await db.collection("chats").doc(currentChatId).collection("messages").add({
+    text: text,
+    uid: ME.uid,
+    time: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  input.value = "";
+}
+
+// Toggle Block
 async function toggleBlock(){
   if(!currentChatUser) return;
 
-  let isCurrentlyBlocked = blockedUsers.has(currentChatUser.uid);
-  let blockRef = db.collection("users").doc(ME.uid).collection("blocked").doc(currentChatUser.uid);
+  const isBlocked = blockedUsers.has(currentChatUser.uid);
+  const blockRef = db.collection("users").doc(ME.uid).collection("blocked").doc(currentChatUser.uid);
 
-  try{
-    if(isCurrentlyBlocked){
-      // Unblock
+  try {
+    if(isBlocked){
       await blockRef.delete();
       blockedUsers.delete(currentChatUser.uid);
-      alert("User unblocked ✅");
+      alert("✅ User Unblocked");
     } else {
-      // Block
       await blockRef.set({
         blocked: true,
         blockedAt: firebase.firestore.FieldValue.serverTimestamp(),
         name: currentChatUser.name
       });
       blockedUsers.add(currentChatUser.uid);
-      alert("User blocked ❌\nYou will no longer see their messages.");
+      alert("❌ User Blocked\nYou won't see their messages anymore.");
     }
 
-    // Refresh block button
-    let blockBtn = document.getElementById("blockBtn");
-    blockBtn.textContent = !isCurrentlyBlocked ? "Unblock User" : "Block User";
-    blockBtn.classList.toggle("blocked", !isCurrentlyBlocked);
+    const blockBtn = document.getElementById("blockBtn");
+    blockBtn.textContent = !isBlocked ? "Unblock User" : "Block User";
+    blockBtn.classList.toggle("blocked", !isBlocked);
 
-  }catch(e){
-    alert("Error: " + e.message);
+  } catch(e) {
+    console.error(e);
   }
 }
 
-// Show Blocked Users Modal
+// Blocked Modal
 async function showBlockedModal(){
-  let list = document.getElementById("blockedList");
-  list.innerHTML = "<p>Loading...</p>";
+  const list = document.getElementById("blockedList");
+  list.innerHTML = "Loading...";
 
-  try{
-    const snap = await db.collection("users").doc(ME.uid).collection("blocked").get();
-    list.innerHTML = "";
+  const snap = await db.collection("users").doc(ME.uid).collection("blocked").get();
+  list.innerHTML = "";
 
-    if(snap.empty){
-      list.innerHTML = "<p>No blocked users yet.</p>";
-      return;
-    }
-
+  if(snap.empty){
+    list.innerHTML = "<p style='text-align:center;color:#888;padding:20px;'>No blocked users yet.</p>";
+  } else {
     snap.forEach(doc => {
-      let data = doc.data();
-      let div = document.createElement("div");
+      const data = doc.data();
+      const div = document.createElement("div");
       div.className = "blockedUser";
       div.innerHTML = `
-        <span>${data.name || doc.id}</span>
-        <button onclick="unblockFromModal('${doc.id}');event.stopImmediatePropagation()" style="background:#ff5252;color:white;border:none;padding:6px 12px;border-radius:20px;cursor:pointer;">Unblock</button>
+        <span style="font-weight:500;">${data.name || doc.id}</span>
+        <button onclick="unblockFromModal('${doc.id}'); event.stopImmediatePropagation()" 
+                style="background:#ff5252;color:white;border:none;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px;">
+          Unblock
+        </button>
       `;
       list.appendChild(div);
     });
-  }catch(e){
-    list.innerHTML = "<p>Error loading blocked users.</p>";
   }
 
   document.getElementById("blockedModal").style.display = "flex";
@@ -400,25 +481,23 @@ function hideBlockedModal(){
 }
 
 async function unblockFromModal(uid){
-  try{
-    await db.collection("users").doc(ME.uid).collection("blocked").doc(uid).delete();
-    blockedUsers.delete(uid);
-    alert("User unblocked");
-    showBlockedModal(); // refresh list
-    // If currently chatting with this user, refresh chat header
-    if(currentChatUser && currentChatUser.uid === uid){
-      let blockBtn = document.getElementById("blockBtn");
-      blockBtn.textContent = "Block User";
-      blockBtn.classList.remove("blocked");
-    }
-  }catch(e){}
+  await db.collection("users").doc(ME.uid).collection("blocked").doc(uid).delete();
+  blockedUsers.delete(uid);
+  
+  if(currentChatUser && currentChatUser.uid === uid){
+    const blockBtn = document.getElementById("blockBtn");
+    blockBtn.textContent = "Block User";
+    blockBtn.classList.remove("blocked");
+  }
+
+  showBlockedModal();
 }
 
-// Cleanup on unload
+// Cleanup
 window.addEventListener("beforeunload", () => {
   if(unsubMessages) unsubMessages();
   if(unsubUsers) unsubUsers();
 });
 </script>
 </body>
-  </html>
+    </html>
