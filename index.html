@@ -4,62 +4,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TalkZone</title><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script><style>
 body{margin:0;font-family:sans-serif;background:#f0f2f5;height:100vh}
-
-/* LOGIN */
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
 #loginBox{background:#fff;padding:20px;border-radius:10px;width:300px}
-
-/* APP */
 #app{display:none;height:100vh;display:flex}
-
-/* SIDEBAR */
 #sidebar{width:30%;background:#fff;overflow:auto}
 .user{padding:12px;border-bottom:1px solid #ddd;cursor:pointer}
-
-/* CHAT */
 #chat{flex:1;display:flex;flex-direction:column}
-#chatHeader{background:#075E54;color:#fff;padding:10px;display:flex;justify-content:space-between}
 #messages{flex:1;padding:10px;overflow:auto}
-
 .msg{margin:5px;padding:10px;border-radius:10px;max-width:60%}
 .me{background:#dcf8c6;margin-left:auto}
 .other{background:#fff}
-
-.tick{font-size:10px;margin-left:5px;color:gray}
-.seen{color:blue}
-
-#typing{font-size:12px;color:gray;padding-left:10px}
-
 #input{display:flex;padding:10px}
 #input input{flex:1;padding:10px}
-#menu{display:none;position:absolute;right:10px;top:50px;background:#fff;border:1px solid #ccc}
-#menu div{padding:10px;cursor:pointer}
-</style></head><body><div id="login">
+</style></head><body><!-- LOGIN --><div id="login">
   <div id="loginBox">
     <h2>TalkZone</h2>
     <input id="u" placeholder="Username">
     <input id="p" type="password" placeholder="Password">
     <button onclick="handleAuth()">Login / Signup</button>
   </div>
-</div><div id="app">
+</div><!-- APP --><div id="app">
   <div id="sidebar"></div>  <div id="chat">
-    <div id="chatHeader">
-      <span id="chatName">Select user</span>
-      <span onclick="toggleMenu()">⋮</span>
-    </div><div id="menu">
-  <div onclick="blockUser()">Block / Unblock</div>
-</div>
-
-<div id="messages"></div>
-<div id="typing"></div>
-
-<div id="input">
-  <input id="msg" oninput="typingNow()" placeholder="Type message">
-  <button onclick="sendMessage()">Send</button>
-</div>
-
+    <div id="messages"></div>
+    <div id="input">
+      <input id="msg" placeholder="Type message">
+      <button onclick="send()">Send</button>
+    </div>
   </div>
 </div><script>
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -70,30 +43,58 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let ME=null,currentChat=null,unsub=null,currentUser=null;
+let ME=null;
+let currentChat=null;
+let unsub=null;
 
-// LOGIN SAFE
+// ✅ FIXED LOGIN / SIGNUP
 async function handleAuth(){
   let u=document.getElementById("u").value.trim().toLowerCase();
   let p=document.getElementById("p").value;
 
-  if(u.length<3||p.length<6)return alert("Invalid");
+  if(u.length<3 || p.length<6){
+    alert("Invalid input");
+    return;
+  }
 
   let email=u+"@app.com";
 
   try{
-    await auth.signInWithEmailAndPassword(email,p);
-  }catch(e){
-    if(e.code==="auth/user-not-found"){
-      let cred=await auth.createUserWithEmailAndPassword(email,p);
+    // 🔍 check user exists
+    let snap = await db.collection("users")
+      .where("name","==",u)
+      .get();
+
+    if(snap.empty){
+      // 🆕 CREATE ACCOUNT
+      let cred = await auth.createUserWithEmailAndPassword(email,p);
+
       await db.collection("users").doc(cred.user.uid).set({
-        name:u,uid:cred.user.uid,blocked:[],lastSeen:Date.now()
+        name:u,
+        uid:cred.user.uid
       });
-    }else alert("Wrong password");
+
+      alert("Account created ✅");
+
+    }else{
+      // 🔑 LOGIN
+      await auth.signInWithEmailAndPassword(email,p);
+    }
+
+  }catch(e){
+    console.log(e.code);
+
+    if(e.code==="auth/wrong-password"){
+      alert("Wrong password ❌");
+    }else if(e.code==="auth/email-already-in-use"){
+      alert("User already exists, try login");
+    }else{
+      alert(e.message);
+    }
   }
 }
 
-// AUTH
+// 🔄 AUTH STATE
 auth.onAuthStateChanged(user=>{
   if(user){
     ME=user;
@@ -111,115 +112,64 @@ function loadUsers(){
   db.collection("users").onSnapshot(snap=>{
     let box=document.getElementById("sidebar");
     box.innerHTML="";
+
     snap.forEach(d=>{
       let u=d.data();
-      if(u.uid===ME.uid)return;
+      if(u.uid===ME.uid) return;
 
       let div=document.createElement("div");
       div.className="user";
       div.innerText=u.name;
-      div.onclick=()=>openChat(u);
+
+      div.onclick=()=>openChat(u.uid);
       box.appendChild(div);
     });
   });
 }
 
 // CHAT
-function openChat(u){
-  currentUser=u;
-  document.getElementById("chatName").innerText=u.name;
-  currentChat=[ME.uid,u.uid].sort().join("_");
+function openChat(uid){
+  currentChat=[ME.uid,uid].sort().join("_");
 
-  if(unsub)unsub();
+  if(unsub) unsub();
 
-  // typing
-  db.collection("typing").doc(currentChat).onSnapshot(d=>{
-    let t=d.data();
-    document.getElementById("typing").innerText=(t&&t.uid!==ME.uid)?"typing...":"";
-  });
+  unsub=db.collection("chats")
+    .doc(currentChat)
+    .collection("messages")
+    .orderBy("time")
+    .onSnapshot(snap=>{
+      let box=document.getElementById("messages");
+      box.innerHTML="";
 
-  unsub=db.collection("chats").doc(currentChat)
-  .collection("messages").orderBy("time")
-  .onSnapshot(snap=>{
-    let box=document.getElementById("messages");
-    box.innerHTML="";
+      snap.forEach(d=>{
+        let m=d.data();
+        let div=document.createElement("div");
+        div.className="msg "+(m.uid===ME.uid?"me":"other");
+        div.innerText=m.text;
+        box.appendChild(div);
+      });
 
-    snap.forEach(doc=>{
-      let m=doc.data();
-      let div=document.createElement("div");
-      div.className="msg "+(m.uid===ME.uid?"me":"other");
-
-      let tick="";
-      if(m.uid===ME.uid){
-        tick=m.seen?"✔✔":"✔";
-      }
-
-      div.innerHTML=(m.deleted?"<i>deleted</i>":m.text)+" <span class='tick "+(m.seen?"seen":"")+"'>"+tick+"</span>";
-
-      if(m.uid!==ME.uid && !m.seen){
-        doc.ref.update({seen:true});
-      }
-
-      div.oncontextmenu=(e)=>{
-        e.preventDefault();
-        if(m.uid===ME.uid){
-          doc.ref.update({deleted:true});
-        }
-      };
-
-      box.appendChild(div);
+      box.scrollTop=box.scrollHeight;
     });
-
-    box.scrollTop=box.scrollHeight;
-  });
 }
 
 // SEND
-async function sendMessage(){
+async function send(){
   let input=document.getElementById("msg");
   let text=input.value.trim();
-  if(!text||!currentChat)return;
 
-  await db.collection("chats").doc(currentChat)
-  .collection("messages").add({
-    text:text,
-    uid:ME.uid,
-    seen:false,
-    deleted:false,
-    time:firebase.firestore.FieldValue.serverTimestamp()
-  });
+  if(!text || !currentChat) return;
+
+  await db.collection("chats")
+    .doc(currentChat)
+    .collection("messages")
+    .add({
+      text:text,
+      uid:ME.uid,
+      time: firebase.firestore.FieldValue.serverTimestamp()
+    });
 
   input.value="";
-}
-
-// typing
-function typingNow(){
-  if(!currentChat)return;
-  db.collection("typing").doc(currentChat).set({uid:ME.uid});
-  setTimeout(()=>db.collection("typing").doc(currentChat).delete(),1000);
-}
-
-// block
-async function blockUser(){
-  let ref=db.collection("users").doc(ME.uid);
-  let doc=await ref.get();
-  let arr=doc.data().blocked||[];
-
-  if(arr.includes(currentUser.uid)){
-    arr=arr.filter(x=>x!==currentUser.uid);
-    alert("Unblocked");
-  }else{
-    arr.push(currentUser.uid);
-    alert("Blocked");
-  }
-
-  await ref.update({blocked:arr});
-}
-
-// menu
-function toggleMenu(){
-  let m=document.getElementById("menu");
-  m.style.display=m.style.display==="block"?"none":"block";
 }
 </script></body>
 </html>
