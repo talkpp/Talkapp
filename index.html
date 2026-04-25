@@ -24,7 +24,6 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 .me{background:#dcf8c6;margin-left:auto}
 .other{background:#fff}
 
-.tick{font-size:11px;margin-left:5px}
 .seen{color:blue}
 
 #input{display:flex;padding:10px;background:#fff}
@@ -38,9 +37,16 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 <div id="login">
   <div id="box">
     <h2>TalkApp</h2>
-    <button onclick="googleLogin()" style="padding:12px;width:100%;cursor:pointer">
-      Continue with Google
-    </button>
+    <button id="googleBtn">Continue with Google</button>
+  </div>
+</div>
+
+<!-- USERNAME -->
+<div id="usernameScreen" class="screen">
+  <div style="padding:20px">
+    <h3>Choose Username</h3>
+    <input id="usernameInput" placeholder="username">
+    <button id="saveUsername">Save</button>
   </div>
 </div>
 
@@ -48,8 +54,8 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 <div id="homeScreen" class="screen">
   <div class="header">
     TalkApp
-    <span style="float:right;cursor:pointer" onclick="logout()">🚪</span>
-    <span style="float:right;margin-right:15px;cursor:pointer" onclick="openSearch()">🔍</span>
+    <span id="logoutBtn" style="float:right">🚪</span>
+    <span id="searchBtn" style="float:right;margin-right:10px">🔍</span>
   </div>
   <div id="chatList"></div>
 </div>
@@ -57,19 +63,18 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 <!-- SEARCH -->
 <div id="searchScreen" class="screen">
   <div class="header">
-    Search
-    <span style="float:left;cursor:pointer" onclick="back()">⬅</span>
+    <span id="backBtn">⬅</span> Search
   </div>
-  <input id="searchInput" placeholder="Search user..." onkeyup="searchUser()">
+  <input id="searchInput" placeholder="Search username">
   <div id="userList"></div>
 </div>
 
 <!-- CHAT -->
 <div id="chatScreen" class="screen">
   <div class="header">
-    <span onclick="back()">⬅</span>
+    <span id="backBtn2">⬅</span>
     <span id="chatName"></span>
-    <button onclick="toggleBlock()">Block</button>
+    <button id="blockBtn">Block</button>
   </div>
 
   <div id="status"></div>
@@ -77,8 +82,8 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
   <div id="messages"></div>
 
   <div id="input">
-    <input id="msg" placeholder="Type..." oninput="typingNow()">
-    <button onclick="send()">Send</button>
+    <input id="msg">
+    <button id="sendBtn">Send</button>
   </div>
 </div>
 
@@ -100,61 +105,64 @@ const db = getFirestore();
 
 let ME,currentUser,currentChat,unsub=null;
 
-// GOOGLE LOGIN
-window.googleLogin = async()=>{
-  try{
-    let res = await signInWithPopup(auth,new GoogleAuthProvider());
-    let user = res.user;
-
-    let ref = doc(db,"users",user.uid);
-    let snap = await getDoc(ref);
-
-    if(!snap.exists()){
-      await setDoc(ref,{
-        name:user.displayName.toLowerCase().replace(/\s/g,''),
-        uid:user.uid,
-        blocked:[],
-        lastSeen:Date.now()
-      });
-    }
-
-  }catch(e){
-    alert(e.message);
-  }
+// LOGIN
+document.getElementById("googleBtn").onclick = async()=>{
+  await signInWithPopup(auth,new GoogleAuthProvider());
 };
 
 // AUTH
 onAuthStateChanged(auth, async user=>{
   if(user){
     ME=user;
-    document.getElementById("login").style.display="none";
-    show("homeScreen");
-    loadChatList();
 
-    setInterval(()=>{
-      updateDoc(doc(db,"users",ME.uid),{lastSeen:Date.now()});
-    },5000);
-  }else{
-    document.getElementById("login").style.display="flex";
+    let ref=doc(db,"users",user.uid);
+    let snap=await getDoc(ref);
+
+    if(!snap.exists() || !snap.data().name){
+      show("usernameScreen");
+    }else{
+      show("homeScreen");
+      loadChatList();
+    }
   }
 });
 
-// LOGOUT
-window.logout = async()=>{
-  await signOut(auth);
-  if(unsub)unsub();
+// USERNAME
+document.getElementById("saveUsername").onclick = async()=>{
+  let uname=usernameInput.value.trim().toLowerCase();
+
+  if(uname.length<3)return alert("Min 3 chars");
+
+  let check=await getDoc(doc(db,"usernames",uname));
+  if(check.exists()) return alert("Taken ❌");
+
+  await setDoc(doc(db,"usernames",uname),{uid:ME.uid});
+  await setDoc(doc(db,"users",ME.uid),{
+    name:uname,
+    uid:ME.uid,
+    blocked:[],
+    lastSeen:Date.now()
+  });
+
+  show("homeScreen");
+  loadChatList();
 };
 
-// SCREEN SWITCH
+// UI
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-// SEARCH
-window.openSearch=()=>show("searchScreen");
+// LOGOUT
+logoutBtn.onclick=()=>signOut(auth);
 
-window.searchUser=()=>{
+// SEARCH
+searchBtn.onclick=()=>show("searchScreen");
+backBtn.onclick=()=>show("homeScreen");
+backBtn2.onclick=()=>show("homeScreen");
+
+searchInput.onkeyup=()=>{
   let term=searchInput.value.toLowerCase();
   if(!term)return userList.innerHTML="";
 
@@ -178,7 +186,6 @@ window.searchUser=()=>{
 function loadChatList(){
   onSnapshot(collection(db,"chats"),async snap=>{
     chatList.innerHTML="";
-
     for(let d of snap.docs){
       let id=d.id;
       if(!id.includes(ME.uid)) continue;
@@ -189,18 +196,9 @@ function loadChatList(){
 
       let u=udoc.data();
 
-      let msgs=await getDocs(query(collection(db,"chats",id,"messages"),orderBy("time","desc")));
-      let last="";
-      msgs.forEach(m=>{
-        if(!last){
-          let data=m.data();
-          last=data.deleted?"deleted":data.text;
-        }
-      });
-
       let div=document.createElement("div");
       div.className="user";
-      div.innerHTML=`<b>${u.name}</b><br><small>${last}</small>`;
+      div.innerText=u.name;
       div.onclick=()=>openChat(u);
       chatList.appendChild(div);
     }
@@ -255,7 +253,7 @@ function openChat(u){
 }
 
 // SEND
-window.send=async()=>{
+sendBtn.onclick=async()=>{
   if(!msg.value)return;
 
   await addDoc(collection(db,"chats",currentChat,"messages"),{
@@ -270,14 +268,14 @@ window.send=async()=>{
 };
 
 // typing
-window.typingNow=()=>{
+msg.oninput=()=>{
   if(!currentChat)return;
   setDoc(doc(db,"typing",currentChat),{uid:ME.uid});
   setTimeout(()=>setDoc(doc(db,"typing",currentChat),{}),1000);
 };
 
 // block
-window.toggleBlock=async()=>{
+blockBtn.onclick=async()=>{
   let ref=doc(db,"users",ME.uid);
   let d=await getDoc(ref);
   let arr=d.data().blocked||[];
@@ -292,8 +290,6 @@ window.toggleBlock=async()=>{
   alert("Updated");
 };
 
-window.back=()=>show("homeScreen");
-
 </script>
 </body>
-  </html>
+</html>
