@@ -2,19 +2,31 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TalkApp</title>
+<title>TalkApp Pro</title>
 
 <style>
 body{margin:0;font-family:sans-serif;background:#f0f2f5}
 .screen{display:none;height:100vh;flex-direction:column}
 .active{display:flex}
 
+/* LOGIN */
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
 #box{background:#fff;padding:25px;border-radius:12px;width:280px;text-align:center}
 
-.header{background:#075E54;color:#fff;padding:15px}
-.user{padding:12px;border-bottom:1px solid #ddd;cursor:pointer}
+/* HEADER */
+.header{background:#075E54;color:#fff;padding:15px;font-size:18px}
 
+/* CHAT LIST */
+.chatItem{
+  padding:12px;
+  border-bottom:1px solid #ddd;
+  cursor:pointer;
+}
+.chatItem:hover{background:#eee}
+.name{font-weight:bold}
+.last{font-size:13px;color:gray}
+
+/* CHAT */
 #messages{flex:1;overflow:auto;padding:10px;background:#ece5dd}
 .msg{padding:10px;border-radius:10px;margin:5px;max-width:65%}
 .me{background:#dcf8c6;margin-left:auto}
@@ -28,7 +40,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 <body>
 
 <!-- LOGIN -->
-<div id="login" class="active">
+<div id="login">
   <div id="box">
     <h2>TalkApp</h2>
     <button id="googleBtn">Continue with Google</button>
@@ -36,25 +48,35 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 </div>
 
 <!-- USERNAME -->
-<div id="username" class="screen">
+<div id="usernameScreen" class="screen">
   <h3>Choose Username</h3>
-  <input id="uname">
-  <button id="saveBtn">Save</button>
+  <input id="usernameInput">
+  <button id="saveUsername">Save</button>
 </div>
 
 <!-- HOME -->
-<div id="home" class="screen">
+<div id="homeScreen" class="screen">
   <div class="header">
     TalkApp
     <span id="logoutBtn" style="float:right">🚪</span>
+    <span id="searchBtn" style="float:right;margin-right:10px">🔍</span>
   </div>
-  <div id="users"></div>
+  <div id="chatList"></div>
+</div>
+
+<!-- SEARCH -->
+<div id="searchScreen" class="screen">
+  <div class="header">
+    <span id="backBtn">⬅</span> Search
+  </div>
+  <input id="searchInput" placeholder="Search user...">
+  <div id="userList"></div>
 </div>
 
 <!-- CHAT -->
-<div id="chat" class="screen">
+<div id="chatScreen" class="screen">
   <div class="header">
-    <span id="backBtn">⬅</span>
+    <span id="backBtn2">⬅</span>
     <span id="chatName"></span>
   </div>
 
@@ -70,7 +92,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, orderBy, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyCz0Bwl9Vz79DNOnFN4t9TaEKtKKUL5m8o",
@@ -85,10 +107,7 @@ let ME,currentChat=null,unsub=null;
 
 // UI
 function show(id){
-  login.classList.remove("active");
-  username.classList.remove("active");
-  home.classList.remove("active");
-  chat.classList.remove("active");
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
@@ -100,6 +119,9 @@ googleBtn.onclick = async()=>{
 // AUTH
 onAuthStateChanged(auth, async user=>{
   if(user){
+
+    document.getElementById("login").style.display="none";
+
     ME=user;
 
     let ref=doc(db,"users",user.uid);
@@ -107,25 +129,25 @@ onAuthStateChanged(auth, async user=>{
 
     if(!snap.exists()){
       await setDoc(ref,{name:"",uid:user.uid});
-      show("username");
+      show("usernameScreen");
       return;
     }
 
     if(!snap.data().name){
-      show("username");
+      show("usernameScreen");
     }else{
-      show("home");
-      loadUsers();
+      show("homeScreen");
+      loadChats(); // 🔥 FIX
     }
 
   }else{
-    show("login");
+    document.getElementById("login").style.display="flex";
   }
 });
 
 // USERNAME
-saveBtn.onclick = async()=>{
-  let name=uname.value.trim().toLowerCase();
+saveUsername.onclick = async()=>{
+  let name=usernameInput.value.trim().toLowerCase();
   if(name.length<3)return alert("Min 3 chars");
 
   let snap=await getDocs(collection(db,"users"));
@@ -138,68 +160,110 @@ saveBtn.onclick = async()=>{
   if(taken)return alert("Taken");
 
   await updateDoc(doc(db,"users",ME.uid),{name:name});
-  show("home");
-  loadUsers();
+  show("homeScreen");
+  loadChats();
 };
 
-// USERS
-function loadUsers(){
-  onSnapshot(collection(db,"users"),snap=>{
-    users.innerHTML="";
-    snap.forEach(d=>{
-      let u=d.data();
-      if(u.uid===ME.uid)return;
+// 🔥 CHAT LIST (PRO FIX)
+function loadChats(){
+  onSnapshot(collection(db,"chats"),async snap=>{
+    chatList.innerHTML="";
+
+    for(let d of snap.docs){
+      let id=d.id;
+
+      if(!id.includes(ME.uid)) continue;
+
+      let other=id.replace(ME.uid,"").replace("_","");
+      let udoc=await getDoc(doc(db,"users",other));
+      if(!udoc.exists()) continue;
+
+      let u=udoc.data();
+
+      let lastMsg="";
+      let msgs=await getDocs(query(collection(db,"chats",id,"messages"),orderBy("time","desc")));
+
+      msgs.forEach(m=>{
+        if(!lastMsg){
+          let data=m.data();
+          lastMsg=data.text || "media";
+        }
+      });
 
       let div=document.createElement("div");
-      div.className="user";
-      div.innerText=u.name;
+      div.className="chatItem";
+      div.innerHTML=`
+        <div class="name">${u.name}</div>
+        <div class="last">${lastMsg}</div>
+      `;
       div.onclick=()=>openChat(u);
 
-      users.appendChild(div);
-    });
+      chatList.appendChild(div);
+    }
   });
 }
 
-// OPEN CHAT
+// SEARCH
+searchBtn.onclick=()=>show("searchScreen");
+backBtn.onclick=()=>show("homeScreen");
+
+searchInput.onkeyup=async()=>{
+  let term=searchInput.value.toLowerCase();
+  userList.innerHTML="";
+  if(!term)return;
+
+  let snap=await getDocs(collection(db,"users"));
+
+  snap.forEach(d=>{
+    let u=d.data();
+    if(u.uid===ME.uid)return;
+
+    if(u.name.includes(term)){
+      let div=document.createElement("div");
+      div.className="chatItem";
+      div.innerText=u.name;
+      div.onclick=()=>openChat(u);
+      userList.appendChild(div);
+    }
+  });
+};
+
+// CHAT
 function openChat(u){
   currentChat=[ME.uid,u.uid].sort().join("_");
   chatName.innerText=u.name;
-  show("chat");
+  show("chatScreen");
 
   if(unsub)unsub();
 
-  unsub=onSnapshot(
-    query(collection(db,"chats",currentChat,"messages"),orderBy("time")),
-    snap=>{
-      messages.innerHTML="";
-      snap.forEach(d=>{
-        let m=d.data();
+  unsub=onSnapshot(query(collection(db,"chats",currentChat,"messages"),orderBy("time")),snap=>{
+    messages.innerHTML="";
 
-        let div=document.createElement("div");
-        div.className="msg "+(m.uid===ME.uid?"me":"other");
-        div.innerText=m.text;
+    snap.forEach(d=>{
+      let m=d.data();
 
-        messages.appendChild(div);
-      });
+      let div=document.createElement("div");
+      div.className="msg "+(m.uid===ME.uid?"me":"other");
+      div.innerText=m.text;
 
-      messages.scrollTop=messages.scrollHeight;
-    }
-  );
+      messages.appendChild(div);
+    });
+
+    messages.scrollTop=messages.scrollHeight;
+  });
 }
 
-// SEND (FINAL FIX)
+// SEND
 sendBtn.onclick = async()=>{
   if(!msg.value || !currentChat){
     alert("Select user first");
     return;
   }
 
-  // create chat doc
   await setDoc(doc(db,"chats",currentChat),{
     users: currentChat.split("_")
   },{merge:true});
 
-  // send message
   await addDoc(collection(db,"chats",currentChat,"messages"),{
     text:msg.value,
     uid:ME.uid,
@@ -210,10 +274,9 @@ sendBtn.onclick = async()=>{
 };
 
 // NAV
-backBtn.onclick=()=>show("home");
+backBtn2.onclick=()=>show("homeScreen");
 logoutBtn.onclick=()=>signOut(auth);
 
 </script>
-
 </body>
 </html>
