@@ -48,7 +48,7 @@
 
     #messages{
         flex:1;
-        padding:20px 20px 90px;   /* Extra padding bottom for input */
+        padding:20px 20px 85px;   /* Balanced padding */
         overflow:auto;
         display:flex;
         flex-direction:column;
@@ -66,7 +66,7 @@
     .me{background:#dcf8c6;align-self:flex-end;}
     .other{background:#fff;align-self:flex-start;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
 
-    /* FIXED INPUT AREA */
+    /* FIXED INPUT - Properly Fixed */
     #inputArea{
         position:absolute;
         bottom:0;
@@ -78,7 +78,7 @@
         display:none;
         gap:10px;
         box-shadow:0 -2px 10px rgba(0,0,0,0.1);
-        z-index:10;
+        z-index:20;
     }
     #inputArea input{
         flex:1;
@@ -139,7 +139,7 @@
 
       <div id="messages"></div>
 
-      <!-- FIXED INPUT -->
+      <!-- FIXED INPUT AREA -->
       <div id="inputArea">
         <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
         <button onclick="sendMessage()">Send</button>
@@ -259,6 +259,7 @@ function filterUsers() {
   });
 }
 
+// Open Chat
 function openChat(user) {
   currentChatUser = user;
   currentChatId = [ME.uid, user.uid].sort().join("_");
@@ -280,7 +281,17 @@ function openChat(user) {
         const m = d.data();
         const div = document.createElement("div");
         div.className = `msg ${m.uid === ME.uid ? "me" : "other"}`;
-        div.innerHTML = `\( {m.text}<div class="msgTime"> \){m.time ? m.time.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</div>`;
+        
+        let timeStr = '';
+        if (m.time) {
+          const date = m.time.toDate();
+          timeStr = date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        }
+
+        div.innerHTML = `
+          ${m.text}
+          <div style="font-size:11px;color:#777;margin-top:4px;">${timeStr}</div>
+        `;
         box.appendChild(div);
       });
       box.scrollTop = box.scrollHeight;
@@ -288,7 +299,8 @@ function openChat(user) {
 }
 
 async function sendMessage() {
-  const text = document.getElementById("msgInput").value.trim();
+  const input = document.getElementById("msgInput");
+  const text = input.value.trim();
   if (!text || !currentChatId) return;
 
   await db.collection("chats").doc(currentChatId).collection("messages").add({
@@ -297,7 +309,7 @@ async function sendMessage() {
     time: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  document.getElementById("msgInput").value = "";
+  input.value = "";
 }
 
 function toggleBlock() {
