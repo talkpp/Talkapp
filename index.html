@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TalkZone Pro</title>
+<title>TalkZone</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -19,33 +19,34 @@ body{margin:0;font-family:sans-serif;background:#0b141a;color:white}
 #login button{width:100%;padding:10px;background:#00a884;border:none;color:white}
 
 /* APP */
-#app{display:none;height:100vh;display:flex}
+#app{display:none;height:100vh;display:flex;flex-direction:row}
 
 /* SIDEBAR */
 #sidebar{width:35%;background:#111b21;overflow:auto}
-.user{padding:12px;cursor:pointer;border-bottom:1px solid #222}
+.user{padding:12px;border-bottom:1px solid #222;cursor:pointer}
 .user:hover{background:#202c33}
 
 /* CHAT */
 #chat{flex:1;display:flex;flex-direction:column}
-#header{padding:10px;background:#202c33}
+#header{padding:10px;background:#202c33;display:flex;justify-content:space-between}
 #status{font-size:12px;color:#aaa}
 
+/* MENU */
+#menu{position:absolute;right:10px;top:50px;background:#202c33;border-radius:8px;display:none}
+#menu div{padding:10px;cursor:pointer}
+#menu div:hover{background:#333}
+
+/* MESSAGES */
 #messages{flex:1;padding:10px;overflow:auto}
-.msg{margin:5px 0;padding:8px;border-radius:10px;max-width:60%}
+.msg{margin:5px 0;padding:8px;border-radius:10px;max-width:60%;position:relative}
 .me{background:#005c4b;margin-left:auto}
 .other{background:#202c33}
-
-.reply{font-size:11px;color:#aaa;border-left:3px solid #00a884;padding-left:5px;margin-bottom:3px}
 
 .tick{font-size:11px;margin-left:5px}
 .seen{color:#53bdeb}
 
-#typing{font-size:12px;color:#aaa;padding-left:10px}
-
-#replyBox{display:none;padding:5px;background:#111}
-
-#input{display:flex;padding:10px;background:#202c33}
+/* INPUT */
+#input{display:none;padding:10px;background:#202c33}
 #input input{flex:1;padding:10px}
 #input button{padding:10px;background:#00a884;border:none;color:white}
 </style>
@@ -70,17 +71,21 @@ body{margin:0;font-family:sans-serif;background:#0b141a;color:white}
 
 <div id="chat">
   <div id="header">
-    <div id="chatName">Select user</div>
-    <div id="status"></div>
+    <div>
+      <div id="chatName">Select user</div>
+      <div id="status"></div>
+    </div>
+    <div onclick="toggleMenu()">⋮</div>
+  </div>
+
+  <div id="menu">
+    <div onclick="toggleBlock()">Block / Unblock</div>
   </div>
 
   <div id="messages"></div>
-  <div id="typing"></div>
-
-  <div id="replyBox"></div>
 
   <div id="input">
-    <input id="msg" placeholder="Type message..." oninput="typingUpdate()">
+    <input id="msg" placeholder="Type message...">
     <button onclick="send()">Send</button>
   </div>
 </div>
@@ -88,7 +93,7 @@ body{margin:0;font-family:sans-serif;background:#0b141a;color:white}
 </div>
 
 <script>
-// 🔥 YOUR WORKING CONFIG
+// CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -99,13 +104,10 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// STATE
 let ME=null;
 let currentUser=null;
 let currentChat=null;
 let unsub=null;
-let replyText=null;
-let typingTimeout=null;
 
 // LOGIN
 async function login(){
@@ -113,23 +115,17 @@ async function login(){
   let p=pEl.value;
   let email=u+"@app.com";
 
-  if(u.length<3 || p.length<6) return alert("Invalid");
-
   try{
     await auth.signInWithEmailAndPassword(email,p);
   }catch(e){
-
     const methods = await auth.fetchSignInMethodsForEmail(email);
-
     if(methods.length===0){
       let cred=await auth.createUserWithEmailAndPassword(email,p);
-
       await db.collection("users").doc(cred.user.uid).set({
         uid:cred.user.uid,
         name:u,
-        lastSeen:Date.now(),
-        typing:false,
-        blocked:[]
+        blocked:[],
+        lastSeen:Date.now()
       });
     }else{
       alert("Wrong password ❌");
@@ -146,11 +142,6 @@ auth.onAuthStateChanged(user=>{
     ME=user;
     login.style.display="none";
     app.style.display="flex";
-
-    db.collection("users").doc(ME.uid).update({
-      lastSeen:Date.now()
-    });
-
     loadUsers();
   }
 });
@@ -178,6 +169,8 @@ function openChat(u){
   chatName.innerText=u.name;
   currentChat=[ME.uid,u.uid].sort().join("_");
 
+  input.style.display="flex";
+
   if(unsub) unsub();
 
   unsub=db.collection("chats").doc(currentChat)
@@ -193,19 +186,22 @@ function openChat(u){
 
       let tick = m.seen ? `<span class="tick seen">✔✔</span>`:`<span class="tick">✔</span>`;
 
-      let replyHTML = m.reply ? `<div class="reply">${m.reply}</div>`:"";
+      div.innerHTML = m.deleted ? "<i>Deleted</i>" :
+        m.text + (m.uid===ME.uid?tick:"");
 
-      div.innerHTML = replyHTML + m.text + (m.uid===ME.uid?tick:"");
-
-      // seen update
+      // seen
       if(m.uid!==ME.uid && !m.seen){
         d.ref.update({seen:true});
       }
 
-      // long press reply
+      // long press delete
       div.oncontextmenu=(e)=>{
         e.preventDefault();
-        setReply(m.text);
+        if(m.uid===ME.uid){
+          if(confirm("Delete for everyone?")){
+            d.ref.update({deleted:true,text:""});
+          }
+        }
       };
 
       messages.appendChild(div);
@@ -213,27 +209,13 @@ function openChat(u){
 
     messages.scrollTop=messages.scrollHeight;
   });
-
-  // typing + last seen
-  db.collection("users").doc(u.uid)
-  .onSnapshot(doc=>{
-    let data=doc.data();
-    if(data.typing){
-      status.innerText="typing...";
-    }else{
-      status.innerText="Last seen: "+formatTime(data.lastSeen);
-    }
-  });
 }
 
 // SEND
 async function send(){
-  if(!currentUser) return alert("Select user");
-
   let text=msg.value.trim();
-  if(!text) return;
+  if(!text || !currentUser) return;
 
-  // block check
   let meDoc=await db.collection("users").doc(ME.uid).get();
   let otherDoc=await db.collection("users").doc(currentUser.uid).get();
 
@@ -245,23 +227,11 @@ async function send(){
     text:text,
     uid:ME.uid,
     seen:false,
-    reply:replyText,
+    deleted:false,
     time:firebase.firestore.FieldValue.serverTimestamp()
   });
 
   msg.value="";
-  clearReply();
-}
-
-// REPLY
-function setReply(text){
-  replyText=text;
-  replyBox.style.display="block";
-  replyBox.innerText="Reply: "+text;
-}
-function clearReply(){
-  replyText=null;
-  replyBox.style.display="none";
 }
 
 // BLOCK
@@ -281,23 +251,9 @@ async function toggleBlock(){
   await ref.update({blocked:arr});
 }
 
-// TYPING
-function typingUpdate(){
-  if(!currentUser) return;
-
-  db.collection("users").doc(ME.uid).update({typing:true});
-
-  clearTimeout(typingTimeout);
-  typingTimeout=setTimeout(()=>{
-    db.collection("users").doc(ME.uid).update({typing:false});
-  },1500);
-}
-
-// TIME
-function formatTime(ts){
-  if(!ts) return "";
-  let d=new Date(ts);
-  return d.getHours()+":"+("0"+d.getMinutes()).slice(-2);
+// MENU
+function toggleMenu(){
+  menu.style.display = menu.style.display==="block"?"none":"block";
 }
 </script>
 
