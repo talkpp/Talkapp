@@ -10,45 +10,40 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#0b141a;color:white}
+body{margin:0;font-family:sans-serif}
 
 /* LOGIN */
-#login{display:flex;justify-content:center;align-items:center;height:100vh}
-#loginBox{background:#202c33;padding:20px;border-radius:10px;width:300px}
-#login input{width:100%;padding:10px;margin:8px 0;background:#111;border:none;color:white}
-#login button{width:100%;padding:10px;background:#00a884;border:none;color:white}
+#login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
+#loginBox{background:#fff;padding:20px;border-radius:10px;width:300px}
+#login input{width:100%;padding:10px;margin:8px 0}
+#login button{width:100%;padding:10px;background:#667eea;color:#fff;border:none}
 
 /* APP */
-#app{display:none;height:100vh;display:flex;flex-direction:row}
+#app{display:none;height:100vh;display:flex}
 
 /* SIDEBAR */
-#sidebar{width:35%;background:#111b21;overflow:auto}
-.user{padding:12px;border-bottom:1px solid #222;cursor:pointer}
-.user:hover{background:#202c33}
+#sidebar{width:30%;background:#f0f2f5;overflow:auto}
+.user{padding:12px;border-bottom:1px solid #ddd;cursor:pointer}
+.user:hover{background:#ddd}
 
 /* CHAT */
 #chat{flex:1;display:flex;flex-direction:column}
-#header{padding:10px;background:#202c33;display:flex;justify-content:space-between}
-#status{font-size:12px;color:#aaa}
+#header{padding:10px;background:#075E54;color:white;display:flex;justify-content:space-between}
+#status{font-size:12px}
+
+#messages{flex:1;padding:10px;overflow:auto}
+.msg{margin:5px 0;padding:8px;border-radius:10px;max-width:60%}
+.me{background:#dcf8c6;margin-left:auto}
+.other{background:#fff}
+
+#input{display:flex;padding:10px;border-top:1px solid #ccc}
+#input input{flex:1;padding:10px}
+#input button{padding:10px}
 
 /* MENU */
-#menu{position:absolute;right:10px;top:50px;background:#202c33;border-radius:8px;display:none}
+#menu{position:absolute;right:10px;top:50px;background:#fff;border:1px solid #ccc;display:none}
 #menu div{padding:10px;cursor:pointer}
-#menu div:hover{background:#333}
-
-/* MESSAGES */
-#messages{flex:1;padding:10px;overflow:auto}
-.msg{margin:5px 0;padding:8px;border-radius:10px;max-width:60%;position:relative}
-.me{background:#005c4b;margin-left:auto}
-.other{background:#202c33}
-
-.tick{font-size:11px;margin-left:5px}
-.seen{color:#53bdeb}
-
-/* INPUT */
-#input{display:none;padding:10px;background:#202c33}
-#input input{flex:1;padding:10px}
-#input button{padding:10px;background:#00a884;border:none;color:white}
+#menu div:hover{background:#eee}
 </style>
 </head>
 
@@ -85,7 +80,7 @@ body{margin:0;font-family:sans-serif;background:#0b141a;color:white}
   <div id="messages"></div>
 
   <div id="input">
-    <input id="msg" placeholder="Type message...">
+    <input id="msg" placeholder="Type message">
     <button onclick="send()">Send</button>
   </div>
 </div>
@@ -93,7 +88,7 @@ body{margin:0;font-family:sans-serif;background:#0b141a;color:white}
 </div>
 
 <script>
-// CONFIG
+// 🔥 Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -115,21 +110,18 @@ async function login(){
   let p=pEl.value;
   let email=u+"@app.com";
 
-  try{
+  let snap = await db.collection("users").where("name","==",u).get();
+
+  if(snap.empty){
+    let cred = await auth.createUserWithEmailAndPassword(email,p);
+    await db.collection("users").doc(cred.user.uid).set({
+      uid:cred.user.uid,
+      name:u,
+      blocked:[],
+      lastSeen:Date.now()
+    });
+  }else{
     await auth.signInWithEmailAndPassword(email,p);
-  }catch(e){
-    const methods = await auth.fetchSignInMethodsForEmail(email);
-    if(methods.length===0){
-      let cred=await auth.createUserWithEmailAndPassword(email,p);
-      await db.collection("users").doc(cred.user.uid).set({
-        uid:cred.user.uid,
-        name:u,
-        blocked:[],
-        lastSeen:Date.now()
-      });
-    }else{
-      alert("Wrong password ❌");
-    }
   }
 }
 
@@ -142,6 +134,11 @@ auth.onAuthStateChanged(user=>{
     ME=user;
     login.style.display="none";
     app.style.display="flex";
+
+    db.collection("users").doc(user.uid).update({
+      lastSeen:"online"
+    });
+
     loadUsers();
   }
 });
@@ -150,13 +147,14 @@ auth.onAuthStateChanged(user=>{
 function loadUsers(){
   db.collection("users").onSnapshot(snap=>{
     sidebar.innerHTML="";
+
     snap.forEach(d=>{
       let u=d.data();
       if(u.uid===ME.uid) return;
 
       let div=document.createElement("div");
       div.className="user";
-      div.innerText=u.name;
+      div.innerHTML = `<b>${u.name}</b><br><small>${u.lastSeen==="online"?"Online":"Last seen"}</small>`;
       div.onclick=()=>openChat(u);
       sidebar.appendChild(div);
     });
@@ -167,9 +165,8 @@ function loadUsers(){
 function openChat(u){
   currentUser=u;
   chatName.innerText=u.name;
-  currentChat=[ME.uid,u.uid].sort().join("_");
 
-  input.style.display="flex";
+  currentChat=[ME.uid,u.uid].sort().join("_");
 
   if(unsub) unsub();
 
@@ -181,20 +178,13 @@ function openChat(u){
 
     snap.forEach(d=>{
       let m=d.data();
+
       let div=document.createElement("div");
       div.className="msg "+(m.uid===ME.uid?"me":"other");
 
-      let tick = m.seen ? `<span class="tick seen">✔✔</span>`:`<span class="tick">✔</span>`;
+      div.innerHTML = m.deleted ? "<i>Deleted</i>" : m.text;
 
-      div.innerHTML = m.deleted ? "<i>Deleted</i>" :
-        m.text + (m.uid===ME.uid?tick:"");
-
-      // seen
-      if(m.uid!==ME.uid && !m.seen){
-        d.ref.update({seen:true});
-      }
-
-      // long press delete
+      // DELETE FOR EVERYONE
       div.oncontextmenu=(e)=>{
         e.preventDefault();
         if(m.uid===ME.uid){
@@ -226,7 +216,6 @@ async function send(){
   .collection("messages").add({
     text:text,
     uid:ME.uid,
-    seen:false,
     deleted:false,
     time:firebase.firestore.FieldValue.serverTimestamp()
   });
@@ -255,7 +244,16 @@ async function toggleBlock(){
 function toggleMenu(){
   menu.style.display = menu.style.display==="block"?"none":"block";
 }
+
+// LAST SEEN UPDATE
+window.onbeforeunload=()=>{
+  if(ME){
+    db.collection("users").doc(ME.uid).update({
+      lastSeen:Date.now()
+    });
+  }
+};
 </script>
 
 </body>
-</html>
+  </html>
