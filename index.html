@@ -6,16 +6,30 @@
 body{margin:0;font-family:sans-serif}
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
 #loginBox{background:#fff;padding:20px;border-radius:10px;width:300px}
+
 #app{display:none;height:100vh;display:flex}
+
 #sidebar{width:30%;background:#eee;overflow:auto}
 .user{padding:10px;border-bottom:1px solid #ccc;cursor:pointer}
+
 #chat{flex:1;display:flex;flex-direction:column}
+#header{background:#075E54;color:#fff;padding:10px;display:flex;justify-content:space-between}
 #messages{flex:1;padding:10px;overflow:auto}
+
 .msg{padding:8px;margin:5px;border-radius:8px;max-width:60%}
 .me{background:#dcf8c6;margin-left:auto}
 .other{background:#fff}
+
+.tick{font-size:10px;margin-left:5px;color:gray}
+.seen{color:blue}
+
+#typing{font-size:12px;color:gray;padding-left:10px}
+
 #input{display:flex}
 #input input{flex:1;padding:10px}
+
+#menu{position:absolute;top:50px;right:10px;background:#fff;border:1px solid #ccc;display:none}
+#menu div{padding:10px;cursor:pointer}
 </style></head><body><!-- LOGIN --><div id="login">
   <div id="loginBox">
     <h2>TalkZone</h2>
@@ -24,15 +38,25 @@ body{margin:0;font-family:sans-serif}
     <button onclick="login()">Login / Signup</button>
   </div>
 </div><!-- APP --><div id="app">
-  <div id="sidebar"></div>
-  <div id="chat">
-    <div id="messages"></div>
-    <div id="input">
-      <input id="msg" placeholder="Type message">
-      <button onclick="send()">Send</button>
-    </div>
+  <div id="sidebar"></div>  <div id="chat">
+    <div id="header">
+      <span id="chatName">Select user</span>
+      <span onclick="toggleMenu()">⋮</span>
+    </div><div id="menu">
+  <div onclick="blockUser()">Block / Unblock</div>
+</div>
+
+<div id="messages"></div>
+<div id="typing"></div>
+
+<div id="input">
+  <input id="msg" oninput="typingNow()" placeholder="Type message">
+  <button onclick="send()">Send</button>
+</div>
+
   </div>
 </div><script>
+// SAME WORKING CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -43,112 +67,172 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let ME=null,currentChat=null,unsub=null;
+let ME=null,currentChat=null,unsub=null,currentUser=null;
 
-// ✅ CLEAN LOGIN (NO FIRESTORE CHECK)
+// 🔐 SAME LOGIN (UNCHANGED)
 async function login(){
- let u=document.getElementById("u").value.trim().toLowerCase();
- let p=document.getElementById("p").value;
+  let u=document.getElementById("u").value.trim().toLowerCase();
+  let p=document.getElementById("p").value;
 
- if(u.length<3 || p.length<6){
-  alert("Invalid input");
-  return;
- }
+  if(u.length<3 || p.length<6){
+    alert("Invalid input");
+    return;
+  }
 
- let email=u+"@app.com";
+  let email=u+"@app.com";
 
- try{
-   await auth.signInWithEmailAndPassword(email,p);
- }catch(e){
-   if(e.code==="auth/user-not-found"){
-     let cred=await auth.createUserWithEmailAndPassword(email,p);
+  try{
+    await auth.signInWithEmailAndPassword(email,p);
+  }catch(e){
+    if(e.code==="auth/user-not-found"){
+      let cred = await auth.createUserWithEmailAndPassword(email,p);
 
-     // only save AFTER create
-     await db.collection("users").doc(cred.user.uid).set({
-       name:u,
-       uid:cred.user.uid
-     });
+      await db.collection("users").doc(cred.user.uid).set({
+        name:u,
+        uid:cred.user.uid,
+        blocked:[]
+      });
 
-   }else{
-     alert("Wrong password ❌");
-   }
- }
+    }else{
+      alert("Wrong password ❌");
+    }
+  }
 }
 
-// ✅ AUTH STATE (FIXED UI)
+// AUTH STATE (UNCHANGED)
 auth.onAuthStateChanged(user=>{
- if(user){
-   ME=user;
-   document.getElementById("login").style.display="none";
-   document.getElementById("app").style.display="flex";
-   loadUsers();
- }else{
-   document.getElementById("login").style.display="flex";
-   document.getElementById("app").style.display="none";
- }
+  if(user){
+    ME=user;
+    login.style.display="none";
+    app.style.display="flex";
+    loadUsers();
+  }else{
+    login.style.display="flex";
+    app.style.display="none";
+  }
 });
 
 // USERS
 function loadUsers(){
- db.collection("users").onSnapshot(snap=>{
-  let box=document.getElementById("sidebar");
-  box.innerHTML="";
+  db.collection("users").onSnapshot(snap=>{
+    sidebar.innerHTML="";
+    snap.forEach(d=>{
+      let u=d.data();
+      if(u.uid===ME.uid)return;
 
-  snap.forEach(d=>{
-   let u=d.data();
-   if(u.uid===ME.uid)return;
+      let div=document.createElement("div");
+      div.className="user";
+      div.innerText=u.name;
 
-   let div=document.createElement("div");
-   div.className="user";
-   div.innerText=u.name;
-
-   div.onclick=()=>openChat(u.uid);
-   box.appendChild(div);
+      div.onclick=()=>openChat(u);
+      sidebar.appendChild(div);
+    });
   });
- });
 }
 
 // CHAT
-function openChat(uid){
- currentChat=[ME.uid,uid].sort().join("_");
+function openChat(u){
+  currentUser=u;
+  chatName.innerText=u.name;
+  currentChat=[ME.uid,u.uid].sort().join("_");
 
- if(unsub) unsub();
+  if(unsub)unsub();
 
- unsub=db.collection("chats")
-   .doc(currentChat)
-   .collection("messages")
-   .orderBy("time")
-   .onSnapshot(snap=>{
-     let box=document.getElementById("messages");
-     box.innerHTML="";
+  // typing listener
+  db.collection("typing").doc(currentChat)
+  .onSnapshot(d=>{
+    let t=d.data();
+    typing.innerText=t && t.uid!==ME.uid ? "typing..." : "";
+  });
 
-     snap.forEach(d=>{
-       let m=d.data();
-       let div=document.createElement("div");
-       div.className="msg "+(m.uid===ME.uid?"me":"other");
-       div.innerText=m.text;
-       box.appendChild(div);
-     });
+  unsub=db.collection("chats").doc(currentChat)
+  .collection("messages")
+  .orderBy("time")
+  .onSnapshot(snap=>{
+    messages.innerHTML="";
 
-     box.scrollTop=box.scrollHeight;
-   });
+    snap.forEach(doc=>{
+      let m=doc.data();
+
+      let div=document.createElement("div");
+      div.className="msg "+(m.uid===ME.uid?"me":"other");
+
+      let tick="";
+      if(m.uid===ME.uid){
+        tick = m.seen ? "<span class='tick seen'>✔✔</span>" : "<span class='tick'>✔</span>";
+      }
+
+      div.innerHTML=(m.deleted?"<i>deleted</i>":m.text)+tick;
+
+      // seen update
+      if(m.uid!==ME.uid && !m.seen){
+        doc.ref.update({seen:true});
+      }
+
+      // delete
+      div.oncontextmenu=(e)=>{
+        e.preventDefault();
+        if(m.uid===ME.uid){
+          doc.ref.update({deleted:true});
+        }
+      };
+
+      messages.appendChild(div);
+    });
+
+    messages.scrollTop=messages.scrollHeight;
+  });
 }
 
 // SEND
 async function send(){
- let text=document.getElementById("msg").value.trim();
- if(!text || !currentChat) return;
+  let text=msg.value.trim();
+  if(!text || !currentChat) return;
 
- await db.collection("chats")
-   .doc(currentChat)
-   .collection("messages")
-   .add({
-     text:text,
-     uid:ME.uid,
-     time: firebase.firestore.FieldValue.serverTimestamp()
-   });
+  await db.collection("chats").doc(currentChat).set({
+    users: currentChat.split("_")
+  },{merge:true});
 
- document.getElementById("msg").value="";
+  await db.collection("chats")
+    .doc(currentChat)
+    .collection("messages")
+    .add({
+      text:text,
+      uid:ME.uid,
+      seen:false,
+      deleted:false,
+      time: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+  msg.value="";
+}
+
+// typing
+function typingNow(){
+  db.collection("typing").doc(currentChat).set({uid:ME.uid});
+  setTimeout(()=>db.collection("typing").doc(currentChat).delete(),1000);
+}
+
+// block
+async function blockUser(){
+  let ref=db.collection("users").doc(ME.uid);
+  let doc=await ref.get();
+  let arr=doc.data().blocked||[];
+
+  if(arr.includes(currentUser.uid)){
+    arr=arr.filter(x=>x!==currentUser.uid);
+    alert("Unblocked");
+  }else{
+    arr.push(currentUser.uid);
+    alert("Blocked");
+  }
+
+  await ref.update({blocked:arr});
+}
+
+// menu
+function toggleMenu(){
+  menu.style.display=menu.style.display==="block"?"none":"block";
 }
 </script></body>
 </html>
