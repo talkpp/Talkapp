@@ -8,14 +8,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-    * { box-sizing: border-box; }
     body{margin:0;font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333;overflow:hidden;height:100vh;}
     
     /* LOGIN */
     #login{display:flex;justify-content:center;align-items:center;height:100vh;background:linear-gradient(135deg,#667eea,#764ba2);}
     #loginBox{background:#fff;padding:30px;border-radius:16px;width:320px;box-shadow:0 10px 30px rgba(0,0,0,0.2);text-align:center;}
     #login h2{margin:0 0 20px;color:#667eea;font-size:28px;}
-    #login input{width:100%;padding:14px;margin:10px 0;border:1px solid #ddd;border-radius:8px;font-size:16px;}
+    #login input{width:100%;padding:14px;margin:10px 0;border:1px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;}
     #login button{width:100%;padding:14px;background:#667eea;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;}
     #loginError{color:#d32f2f;margin-top:10px;}
 
@@ -45,7 +44,7 @@
     
     #chatHeader{padding:15px 20px;background:white;border-bottom:1px solid #ddd;display:none;align-items:center;gap:12px;}
     #chatHeader .avatar{width:42px;height:42px;font-size:18px;}
-    #chatWith{font-weight:1000;font-size:18px;}
+    #chatWith{font-weight:600;font-size:18px;}
     #chatStatus{font-size:13px;color:#4caf50;}
 
     #messages{
@@ -72,7 +71,7 @@
     .msgFooter{font-size:11px;color:#777;margin-top:4px;display:flex;justify-content:flex-end;align-items:center;}
     .ticks{color:#4caf50;font-size:12px;}
 
-    /* INPUT - Clearly Visible */
+    /* INPUT - Clearly Visible & Not Cut */
     #inputArea{
         position:absolute;
         bottom:0;
@@ -126,7 +125,6 @@
   <div id="header">
     <h1>TalkZone</h1>
     <div id="userInfo"></div>
-    <button onclick="showBlockedModal()">Blocked</button>
   </div>
 
   <div id="main">
@@ -144,7 +142,6 @@
           <div id="chatWith" style="font-weight:600;"></div>
           <div id="chatStatus" class="status">online</div>
         </div>
-        <button id="blockBtn" onclick="toggleBlock()">Block</button>
       </div>
 
       <div id="messages"></div>
@@ -323,14 +320,6 @@ async function sendMessage() {
 
   input.value = "";
 }
-
-function toggleBlock() {
-  alert("Block feature coming soon");
-}
-
-function showBlockedModal() {
-  alert("Blocked users coming soon");
-}
 </script>
 </body>
-    </html>
+   </html>
