@@ -9,8 +9,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+<!-- 🔐 Encryption -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
 <style>
-body{margin:0;font-family:sans-serif;background:#f0f2f5;height:100vh}
+body{margin:0;font-family:sans-serif}
 
 /* LOGIN */
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
@@ -21,7 +24,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5;height:100vh}
 .active{display:flex}
 
 /* SEARCH */
-#searchHeader{background:#075E54;color:#fff;padding:15px;font-size:18px}
+#searchHeader{background:#075E54;color:#fff;padding:15px}
 #searchInput{margin:10px;padding:10px;border-radius:20px;border:1px solid #ccc}
 .user{padding:15px;border-bottom:1px solid #ddd;cursor:pointer}
 
@@ -66,7 +69,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5;height:100vh}
 <div id="chatScreen" class="screen">
   <div id="chatHeader">
     <span onclick="goBack()">⬅</span>
-    <span id="chatName">Chat</span>
+    <span id="chatName"></span>
     <button onclick="toggleBlock()">Block</button>
   </div>
 
@@ -82,6 +85,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5;height:100vh}
 </div>
 
 <script>
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -94,6 +98,19 @@ const db = firebase.firestore();
 
 let ME=null,currentChat=null,currentUser=null,unsub=null;
 let myData=null;
+let lastSend=0;
+
+// 🔐 Encryption
+function encrypt(text,key){
+  return CryptoJS.AES.encrypt(text,key).toString();
+}
+function decrypt(text,key){
+  try{
+    return CryptoJS.AES.decrypt(text,key).toString(CryptoJS.enc.Utf8);
+  }catch{
+    return "[error]";
+  }
+}
 
 // LOGIN
 async function handleAuth(){
@@ -124,38 +141,33 @@ async function handleAuth(){
 auth.onAuthStateChanged(async user=>{
   if(user){
     ME=user;
-
     let doc=await db.collection("users").doc(user.uid).get();
     myData=doc.data();
 
     document.getElementById("login").style.display="none";
     showScreen("searchScreen");
 
-    // LAST SEEN UPDATE
+    // last seen update
     setInterval(()=>{
       db.collection("users").doc(ME.uid).update({
         lastSeen: Date.now()
       });
     },5000);
-
   }
 });
 
-// SCREEN SWITCH
+// screen switch
 function showScreen(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-// SEARCH USERS
+// search
 function searchUsers(){
   let term=document.getElementById("searchInput").value.toLowerCase();
   let box=document.getElementById("userList");
 
-  if(term.length<1){
-    box.innerHTML="";
-    return;
-  }
+  if(term.length<1){box.innerHTML="";return;}
 
   db.collection("users").get().then(snap=>{
     box.innerHTML="";
@@ -174,10 +186,10 @@ function searchUsers(){
   });
 }
 
-// OPEN CHAT
+// open chat
 function openChat(u){
   if(myData.blocked?.includes(u.uid)){
-    alert("Blocked user");
+    alert("Blocked");
     return;
   }
 
@@ -187,25 +199,21 @@ function openChat(u){
   document.getElementById("chatName").innerText=u.name;
   showScreen("chatScreen");
 
-  // LAST SEEN
+  // last seen
   db.collection("users").doc(u.uid).onSnapshot(doc=>{
     let d=doc.data();
     let diff=(Date.now()-d.lastSeen)/1000;
 
-    if(diff<5){
-      document.getElementById("chatStatus").innerText="online";
-    }else{
-      document.getElementById("chatStatus").innerText=
-        "last seen "+Math.floor(diff)+" sec ago";
-    }
+    document.getElementById("chatStatus").innerText =
+      diff<5?"online":"last seen "+Math.floor(diff)+"s ago";
   });
 
-  // TYPING
+  // typing
   db.collection("typing").doc(currentChat)
   .onSnapshot(doc=>{
     let d=doc.data();
     document.getElementById("typing").innerText=
-      (d && d.uid!==ME.uid) ? "typing..." : "";
+      (d && d.uid!==ME.uid)?"typing...":"";
   });
 
   if(unsub)unsub();
@@ -219,20 +227,36 @@ function openChat(u){
     snap.forEach(doc=>{
       let m=doc.data();
 
+      let key=(m.uid===ME.uid)?currentUser.uid:ME.uid;
+      let msg=decrypt(m.text,key);
+
       let div=document.createElement("div");
       div.className="msg "+(m.uid===ME.uid?"me":"other");
 
-      let tick="";
-      if(m.uid===ME.uid){
-        tick=m.seen?"✔✔":"✔";
-      }
+      div.innerHTML =
+        (m.deleted?"<i>This message was deleted</i>":msg) +
+        " <span class='tick "+(m.seen?"seen":"")+"'>" +
+        (m.uid===ME.uid?(m.seen?"✔✔":"✔"):"") +
+        "</span>";
 
-      div.innerHTML=m.text+" <span class='tick "+(m.seen?"seen":"")+"'>"+tick+"</span>";
-
-      // SEEN
+      // seen
       if(m.uid!==ME.uid && !m.seen){
         doc.ref.update({seen:true});
       }
+
+      // delete long press
+      let timer;
+      div.onmousedown=()=>{
+        timer=setTimeout(()=>{
+          if(m.uid===ME.uid){
+            if(confirm("Delete for everyone?")){
+              doc.ref.update({deleted:true});
+            }
+          }
+        },600);
+      };
+      div.onmouseup=()=>clearTimeout(timer);
+      div.onmouseleave=()=>clearTimeout(timer);
 
       box.appendChild(div);
     });
@@ -241,47 +265,50 @@ function openChat(u){
   });
 }
 
-// BACK
-function goBack(){
-  showScreen("searchScreen");
-}
-
-// SEND
+// send
 async function sendMessage(){
-  let text=document.getElementById("msg").value.trim();
+  let input=document.getElementById("msg");
+  let text=input.value.trim();
 
   if(!text||!currentChat)return;
 
+  if(Date.now()-lastSend<1000){
+    alert("Slow down");
+    return;
+  }
+  lastSend=Date.now();
+
   if(myData.blocked?.includes(currentUser.uid)){
-    alert("User blocked");
+    alert("Blocked");
     return;
   }
 
+  let enc=encrypt(text,currentUser.uid);
+
   await db.collection("chats").doc(currentChat)
   .collection("messages").add({
-    text:text,
+    text:enc,
     uid:ME.uid,
     seen:false,
+    deleted:false,
     time:firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  document.getElementById("msg").value="";
+  input.value="";
 }
 
-// TYPING
+// typing
 function typingNow(){
   if(!currentChat)return;
 
-  db.collection("typing").doc(currentChat).set({
-    uid:ME.uid
-  });
+  db.collection("typing").doc(currentChat).set({uid:ME.uid});
 
   setTimeout(()=>{
     db.collection("typing").doc(currentChat).delete();
   },1000);
 }
 
-// BLOCK
+// block
 async function toggleBlock(){
   let ref=db.collection("users").doc(ME.uid);
   let arr=myData.blocked||[];
@@ -297,7 +324,12 @@ async function toggleBlock(){
   myData.blocked=arr;
   await ref.update({blocked:arr});
 }
+
+// back
+function goBack(){
+  showScreen("searchScreen");
+}
 </script>
 
 </body>
-  </html>
+</html>
