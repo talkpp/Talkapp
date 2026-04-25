@@ -10,19 +10,25 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 .screen{display:none;height:100vh;flex-direction:column}
 .active{display:flex}
 
+/* LOGIN */
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
-#box{background:#fff;padding:20px;border-radius:10px;width:300px}
+#box{background:#fff;padding:25px;border-radius:12px;width:280px;text-align:center}
 
+/* HEADER */
 .header{background:#075E54;color:#fff;padding:15px;font-size:18px}
 .user{padding:12px;border-bottom:1px solid #ddd;cursor:pointer}
 
+/* CHAT */
 #messages{flex:1;overflow:auto;padding:10px;background:#ece5dd}
-.msg{padding:10px;border-radius:10px;margin:5px;max-width:60%}
+.msg{padding:10px;border-radius:10px;margin:5px;max-width:65%}
 .me{background:#dcf8c6;margin-left:auto}
 .other{background:#fff}
 
-.tick{font-size:10px;margin-left:5px}
+.tick{font-size:11px;margin-left:5px}
 .seen{color:blue}
+
+#input{display:flex;padding:10px;background:#fff}
+#input input{flex:1;padding:10px;border-radius:20px;border:1px solid #ccc}
 </style>
 </head>
 
@@ -32,10 +38,9 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 <div id="login">
   <div id="box">
     <h2>TalkApp</h2>
-    <input id="email" placeholder="Email"><br><br>
-    <input id="pass" type="password" placeholder="Password"><br><br>
-    <button onclick="emailLogin()">Login / Signup</button><br><br>
-    <button onclick="googleLogin()">Google Login</button>
+    <button onclick="googleLogin()" style="padding:12px;width:100%;cursor:pointer">
+      Continue with Google
+    </button>
   </div>
 </div>
 
@@ -43,14 +48,18 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 <div id="homeScreen" class="screen">
   <div class="header">
     TalkApp
-    <span style="float:right;cursor:pointer" onclick="openSearch()">🔍</span>
+    <span style="float:right;cursor:pointer" onclick="logout()">🚪</span>
+    <span style="float:right;margin-right:15px;cursor:pointer" onclick="openSearch()">🔍</span>
   </div>
   <div id="chatList"></div>
 </div>
 
 <!-- SEARCH -->
 <div id="searchScreen" class="screen">
-  <div class="header">Search</div>
+  <div class="header">
+    Search
+    <span style="float:left;cursor:pointer" onclick="back()">⬅</span>
+  </div>
   <input id="searchInput" placeholder="Search user..." onkeyup="searchUser()">
   <div id="userList"></div>
 </div>
@@ -67,8 +76,8 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
   <div id="typing"></div>
   <div id="messages"></div>
 
-  <div style="display:flex;padding:10px">
-    <input id="msg" oninput="typingNow()" style="flex:1;padding:10px">
+  <div id="input">
+    <input id="msg" placeholder="Type..." oninput="typingNow()">
     <button onclick="send()">Send</button>
   </div>
 </div>
@@ -76,7 +85,7 @@ body{margin:0;font-family:sans-serif;background:#f0f2f5}
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, orderBy, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -89,35 +98,28 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-let ME,currentUser,currentChat,unsubMessages=null;
-
-// LOGIN
-window.emailLogin = async()=>{
-  try{
-    await signInWithEmailAndPassword(auth,email.value,pass.value);
-  }catch{
-    let cred=await createUserWithEmailAndPassword(auth,email.value,pass.value);
-    await setDoc(doc(db,"users",cred.user.uid),{
-      name:email.value.split("@")[0],
-      uid:cred.user.uid,
-      blocked:[],
-      lastSeen:Date.now()
-    });
-  }
-};
+let ME,currentUser,currentChat,unsub=null;
 
 // GOOGLE LOGIN
 window.googleLogin = async()=>{
-  let res=await signInWithPopup(auth,new GoogleAuthProvider());
+  try{
+    let res = await signInWithPopup(auth,new GoogleAuthProvider());
+    let user = res.user;
 
-  let d=await getDoc(doc(db,"users",res.user.uid));
-  if(!d.exists()){
-    await setDoc(doc(db,"users",res.user.uid),{
-      name:res.user.displayName.toLowerCase().replace(/\s/g,''),
-      uid:res.user.uid,
-      blocked:[],
-      lastSeen:Date.now()
-    });
+    let ref = doc(db,"users",user.uid);
+    let snap = await getDoc(ref);
+
+    if(!snap.exists()){
+      await setDoc(ref,{
+        name:user.displayName.toLowerCase().replace(/\s/g,''),
+        uid:user.uid,
+        blocked:[],
+        lastSeen:Date.now()
+      });
+    }
+
+  }catch(e){
+    alert(e.message);
   }
 };
 
@@ -132,10 +134,18 @@ onAuthStateChanged(auth, async user=>{
     setInterval(()=>{
       updateDoc(doc(db,"users",ME.uid),{lastSeen:Date.now()});
     },5000);
+  }else{
+    document.getElementById("login").style.display="flex";
   }
 });
 
-// SCREEN
+// LOGOUT
+window.logout = async()=>{
+  await signOut(auth);
+  if(unsub)unsub();
+};
+
+// SCREEN SWITCH
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
@@ -144,14 +154,12 @@ function show(id){
 // SEARCH
 window.openSearch=()=>show("searchScreen");
 
-window.searchUser = ()=>{
+window.searchUser=()=>{
   let term=searchInput.value.toLowerCase();
-  let box=userList;
-
-  if(!term){box.innerHTML="";return;}
+  if(!term)return userList.innerHTML="";
 
   onSnapshot(collection(db,"users"),snap=>{
-    box.innerHTML="";
+    userList.innerHTML="";
     snap.forEach(d=>{
       let u=d.data();
       if(u.uid===ME.uid)return;
@@ -160,7 +168,7 @@ window.searchUser = ()=>{
         div.className="user";
         div.innerText=u.name;
         div.onclick=()=>openChat(u);
-        box.appendChild(div);
+        userList.appendChild(div);
       }
     });
   });
@@ -169,8 +177,7 @@ window.searchUser = ()=>{
 // CHAT LIST
 function loadChatList(){
   onSnapshot(collection(db,"chats"),async snap=>{
-    let box=chatList;
-    box.innerHTML="";
+    chatList.innerHTML="";
 
     for(let d of snap.docs){
       let id=d.id;
@@ -184,7 +191,6 @@ function loadChatList(){
 
       let msgs=await getDocs(query(collection(db,"chats",id,"messages"),orderBy("time","desc")));
       let last="";
-
       msgs.forEach(m=>{
         if(!last){
           let data=m.data();
@@ -196,7 +202,7 @@ function loadChatList(){
       div.className="user";
       div.innerHTML=`<b>${u.name}</b><br><small>${last}</small>`;
       div.onclick=()=>openChat(u);
-      box.appendChild(div);
+      chatList.appendChild(div);
     }
   });
 }
@@ -208,53 +214,48 @@ function openChat(u){
   chatName.innerText=u.name;
   show("chatScreen");
 
-  // last seen
   onSnapshot(doc(db,"users",u.uid),d=>{
     let diff=(Date.now()-d.data().lastSeen)/1000;
     status.innerText=diff<5?"online":"last seen "+Math.floor(diff)+"s";
   });
 
-  // typing
   onSnapshot(doc(db,"typing",currentChat),d=>{
     typing.innerText=(d.exists() && d.data().uid!==ME.uid)?"typing...":"";
   });
 
-  if(unsubMessages) unsubMessages();
+  if(unsub)unsub();
 
-  unsubMessages = onSnapshot(
-    query(collection(db,"chats",currentChat,"messages"),orderBy("time")),
-    snap=>{
-      messages.innerHTML="";
-      snap.forEach(docu=>{
-        let m=docu.data();
+  unsub=onSnapshot(query(collection(db,"chats",currentChat,"messages"),orderBy("time")),snap=>{
+    messages.innerHTML="";
+    snap.forEach(docu=>{
+      let m=docu.data();
 
-        let div=document.createElement("div");
-        div.className="msg "+(m.uid===ME.uid?"me":"other");
+      let div=document.createElement("div");
+      div.className="msg "+(m.uid===ME.uid?"me":"other");
 
-        div.innerHTML=(m.deleted?"<i>deleted</i>":m.text)
-        +" "+(m.uid===ME.uid?(m.seen?"✔✔":"✔"):"");
+      div.innerHTML=(m.deleted?"<i>deleted</i>":m.text)
+      +" "+(m.uid===ME.uid?(m.seen?"✔✔":"✔"):"");
 
-        if(m.uid!==ME.uid && !m.seen){
-          updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{seen:true});
+      if(m.uid!==ME.uid && !m.seen){
+        updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{seen:true});
+      }
+
+      div.oncontextmenu=e=>{
+        e.preventDefault();
+        if(m.uid===ME.uid){
+          updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{deleted:true});
         }
+      };
 
-        // delete
-        div.oncontextmenu=e=>{
-          e.preventDefault();
-          if(m.uid===ME.uid){
-            updateDoc(doc(db,"chats",currentChat,"messages",docu.id),{deleted:true});
-          }
-        };
+      messages.appendChild(div);
+    });
 
-        messages.appendChild(div);
-      });
-      messages.scrollTop=messages.scrollHeight;
-    }
-  );
+    messages.scrollTop=messages.scrollHeight;
+  });
 }
 
 // SEND
-window.send = async()=>{
+window.send=async()=>{
   if(!msg.value)return;
 
   await addDoc(collection(db,"chats",currentChat,"messages"),{
@@ -276,7 +277,7 @@ window.typingNow=()=>{
 };
 
 // block
-window.toggleBlock = async()=>{
+window.toggleBlock=async()=>{
   let ref=doc(db,"users",ME.uid);
   let d=await getDoc(ref);
   let arr=d.data().blocked||[];
@@ -291,7 +292,6 @@ window.toggleBlock = async()=>{
   alert("Updated");
 };
 
-// back
 window.back=()=>show("homeScreen");
 
 </script>
