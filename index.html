@@ -8,27 +8,19 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-<!-- 🔐 Encryption -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
 <style>
 body{margin:0;font-family:sans-serif}
-
-/* LOGIN */
+.screen{display:none;height:100vh;flex-direction:column}
+.active{display:flex}
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:#667eea}
 #loginBox{background:#fff;padding:20px;border-radius:10px;width:300px}
 
-/* SCREENS */
-.screen{display:none;height:100vh;flex-direction:column}
-.active{display:flex}
-
-/* SEARCH */
 #searchHeader{background:#075E54;color:#fff;padding:15px}
 #searchInput{margin:10px;padding:10px;border-radius:20px;border:1px solid #ccc}
 .user{padding:15px;border-bottom:1px solid #ddd;cursor:pointer}
 
-/* CHAT */
 #chatHeader{background:#075E54;color:#fff;padding:10px;display:flex;justify-content:space-between}
 #messages{flex:1;padding:10px;overflow:auto;background:#ece5dd}
 
@@ -38,11 +30,6 @@ body{margin:0;font-family:sans-serif}
 
 .tick{font-size:11px;margin-left:5px;color:gray}
 .seen{color:blue}
-
-#typing{font-size:12px;color:gray;padding-left:10px}
-
-#input{display:flex;padding:10px;background:#fff}
-#input input{flex:1;padding:10px;border-radius:20px;border:1px solid #ccc}
 </style>
 </head>
 
@@ -73,19 +60,17 @@ body{margin:0;font-family:sans-serif}
     <button onclick="toggleBlock()">Block</button>
   </div>
 
-  <div id="chatStatus" style="font-size:12px;color:white;padding-left:10px"></div>
-
+  <div id="chatStatus"></div>
   <div id="messages"></div>
   <div id="typing"></div>
 
-  <div id="input">
-    <input id="msg" oninput="typingNow()" placeholder="Type message">
+  <div style="display:flex;padding:10px">
+    <input id="msg" oninput="typingNow()" style="flex:1;padding:10px">
     <button onclick="sendMessage()">Send</button>
   </div>
 </div>
 
 <script>
-// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAKLZ4dHYp0ZFLolMB5XPxDUu-QPXB_MqA",
   authDomain: "talkzone-b3488.firebaseapp.com",
@@ -96,23 +81,16 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let ME=null,currentChat=null,currentUser=null,unsub=null;
-let myData=null;
-let lastSend=0;
+let ME=null,currentChat=null,currentUser=null,unsub=null,myData=null,lastSend=0;
 
-// 🔐 Encryption
-function encrypt(text,key){
-  return CryptoJS.AES.encrypt(text,key).toString();
-}
-function decrypt(text,key){
-  try{
-    return CryptoJS.AES.decrypt(text,key).toString(CryptoJS.enc.Utf8);
-  }catch{
-    return "[error]";
-  }
+// encryption
+function encrypt(t,k){return CryptoJS.AES.encrypt(t,k).toString();}
+function decrypt(t,k){
+  try{return CryptoJS.AES.decrypt(t,k).toString(CryptoJS.enc.Utf8);}
+  catch{return "[error]";}
 }
 
-// LOGIN
+// LOGIN FIXED UNIQUE
 async function handleAuth(){
   let u=document.getElementById("u").value.trim().toLowerCase();
   let p=document.getElementById("p").value;
@@ -122,18 +100,24 @@ async function handleAuth(){
   let email=u+"@app.com";
 
   try{
-    let snap=await db.collection("users").where("name","==",u).get();
+    let userDoc=await db.collection("usernames").doc(u).get();
 
-    if(snap.empty){
+    if(!userDoc.exists){
       let cred=await auth.createUserWithEmailAndPassword(email,p);
+
+      await db.collection("usernames").doc(u).set({uid:cred.user.uid});
+
       await db.collection("users").doc(cred.user.uid).set({
         name:u,uid:cred.user.uid,blocked:[],lastSeen:Date.now()
       });
+
     }else{
       await auth.signInWithEmailAndPassword(email,p);
     }
+
   }catch(e){
-    alert(e.message);
+    if(e.code==="auth/wrong-password") alert("Wrong password");
+    else alert(e.message);
   }
 }
 
@@ -147,22 +131,19 @@ auth.onAuthStateChanged(async user=>{
     document.getElementById("login").style.display="none";
     showScreen("searchScreen");
 
-    // last seen update
     setInterval(()=>{
-      db.collection("users").doc(ME.uid).update({
-        lastSeen: Date.now()
-      });
+      db.collection("users").doc(ME.uid).update({lastSeen:Date.now()});
     },5000);
   }
 });
 
-// screen switch
+// screen
 function showScreen(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-// search
+// SEARCH FIX
 function searchUsers(){
   let term=document.getElementById("searchInput").value.toLowerCase();
   let box=document.getElementById("userList");
@@ -186,12 +167,9 @@ function searchUsers(){
   });
 }
 
-// open chat
+// OPEN CHAT
 function openChat(u){
-  if(myData.blocked?.includes(u.uid)){
-    alert("Blocked");
-    return;
-  }
+  if(myData.blocked?.includes(u.uid))return alert("Blocked");
 
   currentUser=u;
   currentChat=[ME.uid,u.uid].sort().join("_");
@@ -203,8 +181,7 @@ function openChat(u){
   db.collection("users").doc(u.uid).onSnapshot(doc=>{
     let d=doc.data();
     let diff=(Date.now()-d.lastSeen)/1000;
-
-    document.getElementById("chatStatus").innerText =
+    document.getElementById("chatStatus").innerText=
       diff<5?"online":"last seen "+Math.floor(diff)+"s ago";
   });
 
@@ -239,12 +216,11 @@ function openChat(u){
         (m.uid===ME.uid?(m.seen?"✔✔":"✔"):"") +
         "</span>";
 
-      // seen
       if(m.uid!==ME.uid && !m.seen){
         doc.ref.update({seen:true});
       }
 
-      // delete long press
+      // DELETE LONG PRESS
       let timer;
       div.onmousedown=()=>{
         timer=setTimeout(()=>{
@@ -265,23 +241,15 @@ function openChat(u){
   });
 }
 
-// send
+// SEND
 async function sendMessage(){
-  let input=document.getElementById("msg");
-  let text=input.value.trim();
-
+  let text=document.getElementById("msg").value.trim();
   if(!text||!currentChat)return;
 
-  if(Date.now()-lastSend<1000){
-    alert("Slow down");
-    return;
-  }
+  if(Date.now()-lastSend<1000)return alert("Slow down");
   lastSend=Date.now();
 
-  if(myData.blocked?.includes(currentUser.uid)){
-    alert("Blocked");
-    return;
-  }
+  if(myData.blocked?.includes(currentUser.uid))return alert("Blocked");
 
   let enc=encrypt(text,currentUser.uid);
 
@@ -294,7 +262,7 @@ async function sendMessage(){
     time:firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  input.value="";
+  document.getElementById("msg").value="";
 }
 
 // typing
@@ -302,10 +270,7 @@ function typingNow(){
   if(!currentChat)return;
 
   db.collection("typing").doc(currentChat).set({uid:ME.uid});
-
-  setTimeout(()=>{
-    db.collection("typing").doc(currentChat).delete();
-  },1000);
+  setTimeout(()=>db.collection("typing").doc(currentChat).delete(),1000);
 }
 
 // block
@@ -325,10 +290,7 @@ async function toggleBlock(){
   await ref.update({blocked:arr});
 }
 
-// back
-function goBack(){
-  showScreen("searchScreen");
-}
+function goBack(){showScreen("searchScreen");}
 </script>
 
 </body>
