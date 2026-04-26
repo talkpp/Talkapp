@@ -114,7 +114,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 
 .input-area {
     background: var(--panel);
-    padding: 12px 14px 32px !important;   /* ← Yeh line button ko pura dikhayegi */
+    padding: 12px 14px 32px !important;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -232,8 +232,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   <span data-e="🔥">🔥</span>
   <span data-e="😮">😮</span>
   <span data-e="😢">😢</span>
-      </div>
-      <script type="module">
+    </div>
+    <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, orderBy, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -309,7 +309,7 @@ onAuthStateChanged(auth, async user => {
 function showLogin() { $("login").style.display = "flex"; }
 function hideLogin() { $("login").style.display = "none"; }
 
-// Username
+// Username & Chat List (short)
 $("saveUsername").onclick = async () => {
   let name = $("usernameInput").value.toLowerCase().trim().replace(/\s+/g, "_");
   if (!name) return;
@@ -324,7 +324,6 @@ $("saveUsername").onclick = async () => {
   loadChatList();
 };
 
-// Chat List (short)
 function loadChatList() {
   if (unsubChatList) unsubChatList();
   unsubChatList = onSnapshot(collection(db, "chats"), async snap => {
@@ -355,7 +354,6 @@ function loadChatList() {
   });
 }
 
-// Search (short)
 $("searchBtn").onclick = () => { $("searchInput").value = ""; $("userList").innerHTML = ""; show("searchScreen"); };
 $("backBtn").onclick = () => show("homeScreen");
 
@@ -364,7 +362,6 @@ $("searchInput").oninput = async () => {
   const list = $("userList");
   list.innerHTML = "";
   if (!term) return;
-
   const snap = await getDocs(collection(db, "users"));
   let found = 0;
   snap.forEach(d => {
@@ -388,7 +385,7 @@ $("searchInput").oninput = async () => {
   if (found === 0) list.innerHTML = `<div class="no-result">No user found for "<b>${term}</b>"</div>`;
 };
 
-// Open Chat
+// Open Chat - All features fixed
 async function openChat(u) {
   if (myData.blocked?.includes(u.uid)) {
     alert("You've blocked this user. Unblock to chat.");
@@ -424,8 +421,9 @@ async function openChat(u) {
     snap.forEach(docu => {
       const m = docu.data();
       const isMe = m.uid === ME.uid;
+      const msgId = docu.id;
 
-      if (!isMe && !m.seen) updateDoc(doc(db, "chats", currentChatId, "messages", docu.id), { seen: true });
+      if (!isMe && !m.seen) updateDoc(doc(db, "chats", currentChatId, "messages", msgId), { seen: true });
 
       const wrap = document.createElement("div");
       wrap.className = "msg-wrapper";
@@ -458,6 +456,26 @@ async function openChat(u) {
 
       msgDiv.appendChild(bubble);
       msgDiv.appendChild(meta);
+
+      // Reply on tap
+      msgDiv.onclick = () => {
+        if (m.deleted) return;
+        replyMsg = m.text;
+        $("replyText").innerText = "↩ " + m.text;
+        $("replyBox").style.display = "flex";
+        $("msgInput").focus();
+      };
+
+      // Long press for emoji
+      let timer;
+      msgDiv.addEventListener("touchstart", (e) => {
+        timer = setTimeout(() => {
+          showEmojiPicker(e.touches[0].clientX, e.touches[0].clientY, msgId);
+        }, 600);
+      });
+      msgDiv.addEventListener("touchend", () => clearTimeout(timer));
+      msgDiv.addEventListener("touchmove", () => clearTimeout(timer));
+
       wrap.appendChild(msgDiv);
       container.appendChild(wrap);
     });
@@ -487,6 +505,29 @@ async function openChat(u) {
     }
   });
 }
+
+// Emoji Picker Function
+function showEmojiPicker(x, y, msgId) {
+  const picker = $("emojiPicker");
+  picker.style.display = "flex";
+  picker.style.left = Math.min(x, window.innerWidth - 250) + "px";
+  picker.style.top = Math.max(y - 80, 20) + "px";
+
+  picker.querySelectorAll("span").forEach(s => {
+    s.onclick = () => {
+      if (msgId && currentChatId) {
+        updateDoc(doc(db, "chats", currentChatId, "messages", msgId), { reaction: s.dataset.e });
+      }
+      picker.style.display = "none";
+    };
+  });
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest("#emojiPicker") && !e.target.closest(".msg")) {
+    $("emojiPicker").style.display = "none";
+  }
+});
 
 // Send Message
 $("sendBtn").onclick = async () => {
@@ -520,8 +561,14 @@ $("blockBtn").onclick = async () => {
   await updateDoc(doc(db, "users", ME.uid), { blocked });
 };
 
-// Back & Logout
-$("backBtn2").onclick = () => { cleanupChatListeners(); currentChatId = null; show("homeScreen"); };
+// Back Button
+$("backBtn2").onclick = () => {
+  cleanupChatListeners();
+  currentChatId = null;
+  currentUser = null;
+  show("homeScreen");
+};
+
 $("logoutBtn").onclick = async () => {
   cleanupChatListeners();
   if (unsubChatList) unsubChatList();
@@ -530,7 +577,10 @@ $("logoutBtn").onclick = async () => {
   showLogin();
 };
 
-$("replyClose").onclick = () => { replyMsg = null; $("replyBox").style.display = "none"; };
+$("replyClose").onclick = () => {
+  replyMsg = null;
+  $("replyBox").style.display = "none";
+};
 </script>
 </body>
     </html>
