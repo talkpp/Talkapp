@@ -433,4 +433,29 @@ $("sendBtn").onclick = async () => {
   await addDoc(collection(db, "chats", currentChatId, "messages"), msgData);
 };
 
-$("msgInput").addEventListener("keydown", e => { if (e.key === "Ente
+$("msgInput").addEventListener("keydown", e => { if (e.key === "Enter") $("sendBtn").click(); });
+
+// Typing indicator
+$("msgInput").oninput = () => {
+  if (currentChatId) setDoc(doc(db, "typing", currentChatId), { uid: ME.uid, time: Date.now() });
+};
+
+// Block button, back buttons, emoji picker etc. same rakh sakte ho (tumhare purane code se copy kar lo)
+
+$("backBtn2").onclick = () => {
+  cleanupChatListeners();
+  currentUser = null;
+  currentChatId = null;
+  show("homeScreen");
+};
+
+$("logoutBtn").onclick = async () => {
+  cleanupChatListeners();
+  if (unsubChatList) unsubChatList();
+  if (ME) await updateDoc(doc(db, "users", ME.uid), { online: false, lastSeen: Date.now() });
+  await signOut(auth);
+  showLogin();
+};
+</script>
+</body>
+</html>
