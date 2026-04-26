@@ -378,7 +378,7 @@ $("searchInput").oninput = async () => {
   if (found === 0) list.innerHTML = `<div class="no-result">No user found for "<b>${term}</b>"</div>`;
 };
 
-// Open Chat - Final Fixed (Header will not hide)
+// Open Chat - Header Fix Applied
 async function openChat(u) {
   if (myData.blocked?.includes(u.uid)) {
     alert("You've blocked this user. Unblock to chat.");
@@ -499,7 +499,7 @@ $("sendBtn").onclick = async () => {
 $("msgInput").addEventListener("keydown", e => { if (e.key === "Enter") $("sendBtn").click(); });
 $("msgInput").oninput = () => { if (currentChatId) setDoc(doc(db, "typing", currentChatId), { uid: ME.uid, time: Date.now() }); };
 
-// Block
+// Block Button
 $("blockBtn").onclick = async () => {
   if (!currentUser) return;
   let blocked = myData.blocked || [];
@@ -527,4 +527,4 @@ $("logoutBtn").onclick = async () => {
 $("replyClose").onclick = () => { replyMsg = null; $("replyBox").style.display = "none"; };
 </script>
 </body>
-</html>
+    </html>
