@@ -58,8 +58,24 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 #userList{flex:1;overflow-y:auto}
 .no-result{text-align:center;color:var(--text-muted);padding:40px 20px;font-size:14px;}
 
-#chatScreen {display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg);}
-.chat-header {background:var(--panel); display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--border); flex-shrink: 0; z-index: 10;}
+#chatScreen {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+}
+.chat-header {
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 20;
+    position: relative;
+}
 .chat-header-info{flex:1}
 .chat-header-info .name{font-size:16px;font-weight:600;color:var(--text)}
 .chat-header-info .status-line{font-size:12px;color:var(--green);margin-top:1px}
@@ -67,8 +83,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 
 #typing{font-size:12px;color:var(--green);padding:4px 20px 0;height:20px;font-style:italic;}
 #messages {
-    flex: 1; overflow-y: auto; padding: 12px 6% 80px; background: var(--bg);
-    display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 6% 80px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
 }
 #messages::-webkit-scrollbar{width:5px}
 #messages::-webkit-scrollbar-thumb{background:var(--panel2);border-radius:10px}
@@ -119,7 +141,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   </button>
 </div>
 
-<!-- USERNAME, HOME, SEARCH, CHAT SCREEN -->
+<!-- USERNAME SCREEN -->
 <div id="usernameScreen" class="screen">
   <div class="username-card">
     <h3>Choose a Username</h3>
@@ -129,13 +151,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   </div>
 </div>
 
+<!-- HOME SCREEN -->
 <div id="homeScreen" class="screen">
   <div class="app-header">
     <div class="header-top">
       <h1>TalkApp</h1>
       <div class="header-actions">
-        <button class="icon-btn" id="searchBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
-        <button class="icon-btn" id="logoutBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+        <button class="icon-btn" id="searchBtn" title="Search users">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <button class="icon-btn" id="logoutBtn" title="Logout">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
       </div>
     </div>
     <div class="tabs"><div class="tab active">Chats</div></div>
@@ -143,9 +170,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   <div id="chatList"></div>
 </div>
 
+<!-- SEARCH SCREEN -->
 <div id="searchScreen" class="screen">
   <div class="search-header">
-    <button class="icon-btn" id="backBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button class="icon-btn" id="backBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
     <div class="search-bar">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8696a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="searchInput" placeholder="Search by username..." autocomplete="off">
@@ -154,9 +184,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   <div id="userList"></div>
 </div>
 
+<!-- CHAT SCREEN -->
 <div id="chatScreen" class="screen">
   <div class="chat-header">
-    <button class="icon-btn" id="backBtn2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button class="icon-btn" id="backBtn2">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
     <div class="avatar-wrap">
       <div class="avatar" id="chatAvatar">?</div>
       <div class="online-dot" id="chatOnlineDot" style="display:none"></div>
@@ -181,6 +214,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   </div>
 </div>
 
+<!-- EMOJI PICKER -->
 <div class="emoji-picker" id="emojiPicker" style="display:none">
   <span data-e="😂">😂</span>
   <span data-e="❤️">❤️</span>
@@ -344,7 +378,7 @@ $("searchInput").oninput = async () => {
   if (found === 0) list.innerHTML = `<div class="no-result">No user found for "<b>${term}</b>"</div>`;
 };
 
-// Open Chat - Fixed
+// Open Chat - Final Fixed (Header will not hide)
 async function openChat(u) {
   if (myData.blocked?.includes(u.uid)) {
     alert("You've blocked this user. Unblock to chat.");
@@ -370,9 +404,10 @@ async function openChat(u) {
   await setDoc(doc(db, "chats", currentChatId), { users: currentChatId.split("_") }, { merge: true });
 
   const msgsRef = query(collection(db, "chats", currentChatId, "messages"), orderBy("time"));
+  
   unsubMessages = onSnapshot(msgsRef, snap => {
     const container = $("messages");
-    const isNearBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
+    const wasNearBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 150;
 
     container.innerHTML = "";
 
@@ -380,7 +415,9 @@ async function openChat(u) {
       const m = docu.data();
       const isMe = m.uid === ME.uid;
 
-      if (!isMe && !m.seen) updateDoc(doc(db, "chats", currentChatId, "messages", docu.id), { seen: true });
+      if (!isMe && !m.seen) {
+        updateDoc(doc(db, "chats", currentChatId, "messages", docu.id), { seen: true });
+      }
 
       const wrap = document.createElement("div");
       wrap.className = "msg-wrapper";
@@ -391,7 +428,7 @@ async function openChat(u) {
 
       const bubble = document.createElement("div");
       bubble.className = "msg-bubble";
-      bubble.innerHTML = (m.reply ? `<div class="reply-preview">↩ ${m.reply}</div>` : "") + 
+      bubble.innerHTML = (m.reply ? `<div class="reply-preview">↩ ${m.reply}</div>` : "") +
                          (m.deleted ? `<i style="color:var(--text-muted)">This message was deleted</i>` : m.text);
 
       if (m.reaction) {
@@ -417,8 +454,10 @@ async function openChat(u) {
       container.appendChild(wrap);
     });
 
-    if (isNearBottom || snap.docs.length < 10) {
-      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    if (wasNearBottom || snap.docs.length < 10) {
+      setTimeout(() => {
+        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+      }, 10);
     }
   });
 
@@ -438,18 +477,20 @@ async function openChat(u) {
     const t = d.data();
     if (t.uid !== ME.uid && Date.now() - t.time < 3000) {
       $("typing").textContent = "typing...";
-      typingClearTimer = setTimeout(() => $("typing").textContent = "", 3000);
+      typingClearTimer = setTimeout(() => $("typing").textContent = "", 2800);
     }
   });
 }
 
-// Send, Input, Block, Back
+// Send Message
 $("sendBtn").onclick = async () => {
   const text = $("msgInput").value.trim();
   if (!text || !currentChatId) return;
+
   await addDoc(collection(db, "chats", currentChatId, "messages"), {
     text, uid: ME.uid, seen: false, deleted: false, reply: replyMsg || null, time: Date.now()
   });
+
   $("msgInput").value = "";
   replyMsg = null;
   $("replyBox").style.display = "none";
@@ -458,6 +499,7 @@ $("sendBtn").onclick = async () => {
 $("msgInput").addEventListener("keydown", e => { if (e.key === "Enter") $("sendBtn").click(); });
 $("msgInput").oninput = () => { if (currentChatId) setDoc(doc(db, "typing", currentChatId), { uid: ME.uid, time: Date.now() }); };
 
+// Block
 $("blockBtn").onclick = async () => {
   if (!currentUser) return;
   let blocked = myData.blocked || [];
@@ -472,6 +514,7 @@ $("blockBtn").onclick = async () => {
   await updateDoc(doc(db, "users", ME.uid), { blocked });
 };
 
+// Back & Logout
 $("backBtn2").onclick = () => { cleanupChatListeners(); currentChatId = null; show("homeScreen"); };
 $("logoutBtn").onclick = async () => {
   cleanupChatListeners();
