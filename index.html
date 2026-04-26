@@ -115,13 +115,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 
 .input-area {
     background:var(--panel);
-    padding: 10px 14px 20px;   /* Extra bottom padding for mobile */
+    padding: 12px 14px 24px;
     display:flex;
     align-items:center;
     gap:10px;
     border-top:1px solid var(--border);
     flex-shrink: 0;
-    z-index: 10;
 }
 .input-area input{flex:1;background:var(--input-bg);border:none;border-radius:24px;padding:12px 18px;color:var(--text);font-size:15px;font-family:'Inter',sans-serif;outline:none;}
 .input-area input::placeholder{color:var(--text-muted)}
@@ -139,12 +138,63 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 </head>
 <body>
 
-<!-- LOGIN, USERNAME, HOME, SEARCH, CHAT SCREEN (same as before) -->
-<div id="login"> ... (tumhara purana login) ... </div>
-<div id="usernameScreen" class="screen"> ... </div>
-<div id="homeScreen" class="screen"> ... </div>
-<div id="searchScreen" class="screen"> ... </div>
+<!-- LOGIN SCREEN -->
+<div id="login">
+  <div class="login-logo">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.82.487 3.53 1.338 5.01L2 22l5.09-1.323A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.96 7.96 0 01-4.07-1.118l-.29-.172-3.02.785.804-2.942-.19-.302A7.93 7.93 0 014 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8zm4.406-5.845c-.242-.121-1.43-.705-1.652-.786-.222-.08-.384-.121-.545.121-.162.242-.626.786-.768.948-.141.161-.283.182-.525.06-.242-.121-1.02-.375-1.943-1.196-.718-.64-1.203-1.43-1.344-1.672-.141-.242-.015-.373.106-.493.109-.108.242-.283.363-.424.12-.142.16-.242.24-.404.08-.162.04-.303-.02-.424-.06-.121-.545-1.313-.747-1.797-.197-.473-.397-.408-.545-.416l-.464-.008c-.162 0-.424.06-.646.303-.222.242-.848.829-.848 2.022 0 1.192.868 2.344.989 2.506.12.161 1.71 2.61 4.144 3.659.58.25 1.031.4 1.383.511.581.185 1.11.159 1.528.097.466-.069 1.43-.585 1.631-1.15.202-.565.202-1.05.141-1.15-.06-.1-.222-.162-.464-.283z"/></svg>
+  </div>
+  <div class="login-title">TalkApp Pro</div>
+  <div class="login-sub">Fast, secure & private messaging for everyone</div>
+  <button id="googleBtn">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+    Continue with Google
+  </button>
+</div>
 
+<!-- USERNAME SCREEN -->
+<div id="usernameScreen" class="screen">
+  <div class="username-card">
+    <h3>Choose a Username</h3>
+    <p>This is how people will find you on TalkApp.</p>
+    <input id="usernameInput" placeholder="e.g. john_doe" autocomplete="off">
+    <button id="saveUsername">Get Started</button>
+  </div>
+</div>
+
+<!-- HOME SCREEN -->
+<div id="homeScreen" class="screen">
+  <div class="app-header">
+    <div class="header-top">
+      <h1>TalkApp</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="searchBtn" title="Search users">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <button class="icon-btn" id="logoutBtn" title="Logout">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="tabs"><div class="tab active">Chats</div></div>
+  </div>
+  <div id="chatList"></div>
+</div>
+
+<!-- SEARCH SCREEN -->
+<div id="searchScreen" class="screen">
+  <div class="search-header">
+    <button class="icon-btn" id="backBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="search-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8696a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" placeholder="Search by username..." autocomplete="off">
+    </div>
+  </div>
+  <div id="userList"></div>
+</div>
+
+<!-- CHAT SCREEN -->
 <div id="chatScreen" class="screen">
   <div class="chat-header">
     <button class="icon-btn" id="backBtn2">
@@ -174,6 +224,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   </div>
 </div>
 
+<!-- EMOJI PICKER -->
 <div class="emoji-picker" id="emojiPicker" style="display:none">
   <span data-e="😂">😂</span>
   <span data-e="❤️">❤️</span>
@@ -181,8 +232,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   <span data-e="🔥">🔥</span>
   <span data-e="😮">😮</span>
   <span data-e="😢">😢</span>
-</div>
-<script type="module">
+    </div>
+    <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, orderBy, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -229,7 +280,7 @@ function cleanupChatListeners() {
   unsubMessages = unsubPresence = unsubTyping = typingClearTimer = null;
 }
 
-// Auth, Username, Chat List, Search (same as before - short version)
+// Auth
 $("googleBtn").onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
 
 onAuthStateChanged(auth, async user => {
@@ -258,7 +309,7 @@ onAuthStateChanged(auth, async user => {
 function showLogin() { $("login").style.display = "flex"; }
 function hideLogin() { $("login").style.display = "none"; }
 
-// Username Setup (same)
+// Username
 $("saveUsername").onclick = async () => {
   let name = $("usernameInput").value.toLowerCase().trim().replace(/\s+/g, "_");
   if (!name) return;
@@ -273,9 +324,71 @@ $("saveUsername").onclick = async () => {
   loadChatList();
 };
 
-// Chat List, Search (same as previous response - skip if already working)
+// Chat List
+function loadChatList() {
+  if (unsubChatList) unsubChatList();
+  unsubChatList = onSnapshot(collection(db, "chats"), async snap => {
+    $("chatList").innerHTML = "";
+    const promises = [];
+    snap.forEach(d => {
+      const parts = d.id.split("_");
+      if (!parts.includes(ME.uid)) return;
+      const otherUid = parts.find(p => p !== ME.uid);
+      if (otherUid) promises.push(getDoc(doc(db, "users", otherUid)).then(doc => doc.exists() ? {chatId: d.id, user: doc.data()} : null));
+    });
+    const results = (await Promise.all(promises)).filter(Boolean);
+    results.forEach(({user: u}) => {
+      const div = document.createElement("div");
+      div.className = "chatItem";
+      div.innerHTML = `
+        <div class="avatar-wrap">
+          <div class="avatar">${avatarLetter(u.name)}</div>
+          ${u.online ? `<div class="online-dot"></div>` : ""}
+        </div>
+        <div class="chat-info">
+          <div class="chat-name">${u.name}</div>
+          <div class="chat-preview">${u.online ? `<span style="color:var(--green)">online</span>` : lastSeenText(u.lastSeen)}</div>
+        </div>`;
+      div.onclick = () => openChat(u);
+      $("chatList").appendChild(div);
+    });
+  });
+}
 
-// Open Chat - Fixed
+// Search
+$("searchBtn").onclick = () => { $("searchInput").value = ""; $("userList").innerHTML = ""; show("searchScreen"); };
+$("backBtn").onclick = () => show("homeScreen");
+
+$("searchInput").oninput = async () => {
+  const term = $("searchInput").value.toLowerCase().trim();
+  const list = $("userList");
+  list.innerHTML = "";
+  if (!term) return;
+
+  const snap = await getDocs(collection(db, "users"));
+  let found = 0;
+  snap.forEach(d => {
+    const u = d.data();
+    if (!u.name || u.uid === ME.uid || !u.name.toLowerCase().includes(term)) return;
+    found++;
+    const div = document.createElement("div");
+    div.className = "chatItem";
+    div.innerHTML = `
+      <div class="avatar-wrap">
+        <div class="avatar">${avatarLetter(u.name)}</div>
+        ${u.online ? `<div class="online-dot"></div>` : ""}
+      </div>
+      <div class="chat-info">
+        <div class="chat-name">${u.name}</div>
+        <div class="chat-preview">${u.online ? `<span style="color:var(--green)">online</span>` : lastSeenText(u.lastSeen)}</div>
+      </div>`;
+    div.onclick = () => openChat(u);
+    list.appendChild(div);
+  });
+  if (found === 0) list.innerHTML = `<div class="no-result">No user found for "<b>${term}</b>"</div>`;
+};
+
+// Open Chat
 async function openChat(u) {
   if (myData.blocked?.includes(u.uid)) {
     alert("You've blocked this user. Unblock to chat.");
@@ -323,7 +436,7 @@ async function openChat(u) {
 
       const bubble = document.createElement("div");
       bubble.className = "msg-bubble";
-      bubble.innerHTML = (m.reply ? `<div class="reply-preview">↩ ${m.reply}</div>` : "") + 
+      bubble.innerHTML = (m.reply ? `<div class="reply-preview">↩ ${m.reply}</div>` : "") +
                          (m.deleted ? `<i style="color:var(--text-muted)">This message was deleted</i>` : m.text);
 
       if (m.reaction) {
@@ -350,11 +463,12 @@ async function openChat(u) {
     });
 
     if (wasNearBottom || snap.docs.length < 10) {
-      setTimeout(() => container.scrollTo({ top: container.scrollHeight, behavior: "smooth" }), 10);
+      setTimeout(() => {
+        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+      }, 10);
     }
   });
 
-  // Presence & Typing (same)
   unsubPresence = onSnapshot(doc(db, "users", u.uid), d => {
     if (!d.exists()) return;
     const data = d.data();
@@ -376,13 +490,15 @@ async function openChat(u) {
   });
 }
 
-// Send, Input, Block, Back (same)
+// Send Message
 $("sendBtn").onclick = async () => {
   const text = $("msgInput").value.trim();
   if (!text || !currentChatId) return;
+
   await addDoc(collection(db, "chats", currentChatId, "messages"), {
     text, uid: ME.uid, seen: false, deleted: false, reply: replyMsg || null, time: Date.now()
   });
+
   $("msgInput").value = "";
   replyMsg = null;
   $("replyBox").style.display = "none";
@@ -391,6 +507,7 @@ $("sendBtn").onclick = async () => {
 $("msgInput").addEventListener("keydown", e => { if (e.key === "Enter") $("sendBtn").click(); });
 $("msgInput").oninput = () => { if (currentChatId) setDoc(doc(db, "typing", currentChatId), { uid: ME.uid, time: Date.now() }); };
 
+// Block
 $("blockBtn").onclick = async () => {
   if (!currentUser) return;
   let blocked = myData.blocked || [];
@@ -405,6 +522,7 @@ $("blockBtn").onclick = async () => {
   await updateDoc(doc(db, "users", ME.uid), { blocked });
 };
 
+// Back & Logout
 $("backBtn2").onclick = () => { cleanupChatListeners(); currentChatId = null; show("homeScreen"); };
 $("logoutBtn").onclick = async () => {
   cleanupChatListeners();
