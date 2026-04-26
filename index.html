@@ -11,6 +11,32 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 
 .screen{display:none;height:100vh;flex-direction:column}
 .active{display:flex!important}
+    .trust-badges{
+  font-size:13px;
+  color:var(--text-muted);
+  text-align:center;
+  margin-bottom:20px;
+  line-height:1.6;
+}
+
+.login-info{
+  margin-top:16px;
+  font-size:12px;
+  color:var(--text-muted);
+  text-align:center;
+  max-width:260px;
+  line-height:1.5;
+}
+
+.login-footer{
+  position:absolute;
+  bottom:20px;
+  font-size:11px;
+  color:var(--text-muted);
+  text-align:center;
+  width:100%;
+  opacity:0.8;
+}
 
 #login{display:flex;justify-content:center;align-items:center;height:100vh;background:var(--bg);flex-direction:column;}
 .login-logo{width:72px;height:72px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:28px;box-shadow:0 0 40px rgba(0,168,132,0.35);}
@@ -141,14 +167,36 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 <!-- LOGIN SCREEN -->
 <div id="login">
   <div class="login-logo">
-    <svg viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.82.487 3.53 1.338 5.01L2 22l5.09-1.323A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.96 7.96 0 01-4.07-1.118l-.29-.172-3.02.785.804-2.942-.19-.302A7.93 7.93 0 014 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8zm4.406-5.845c-.242-.121-1.43-.705-1.652-.786-.222-.08-.384-.121-.545.121-.162.242-.626.786-.768.948-.141.161-.283.182-.525.06-.242-.121-1.02-.375-1.943-1.196-.718-.64-1.203-1.43-1.344-1.672-.141-.242-.015-.373.106-.493.109-.108.242-.283.363-.424.12-.142.16-.242.24-.404.08-.162.04-.303-.02-.424-.06-.121-.545-1.313-.747-1.797-.197-.473-.397-.408-.545-.416l-.464-.008c-.162 0-.424.06-.646.303-.222.242-.848.829-.848 2.022 0 1.192.868 2.344.989 2.506.12.161 1.71 2.61 4.144 3.659.58.25 1.031.4 1.383.511.581.185 1.11.159 1.528.097.466-.069 1.43-.585 1.631-1.15.202-.565.202-1.05.141-1.15-.06-.1-.222-.162-.464-.283z"/></svg>
+    <svg viewBox="0 0 24 24">
+      <path d="M12 2C6.477 2 2 6.477 2 12c0 1.82.487 3.53 1.338 5.01L2 22l5.09-1.323A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+    </svg>
   </div>
+
   <div class="login-title">TalkApp Pro</div>
-  <div class="login-sub">Fast, secure & private messaging for everyone</div>
+
+  <div class="login-sub">
+    Fast, secure & private messaging for everyone
+  </div>
+
+  <div class="trust-badges">
+    ✔ Secure Google Login <br>
+    ✔ No password stored <br>
+    ✔ Private & ad-free
+  </div>
+
   <button id="googleBtn">
-    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg">
     Continue with Google
   </button>
+
+  <div class="login-info">
+    We use official Google authentication via Firebase.<br>
+    Your password is never stored on our servers.
+  </div>
+
+  <div class="login-footer">
+    Demo project • Built with Firebase • By YourName
+  </div>
 </div>
 
 <!-- USERNAME SCREEN -->
