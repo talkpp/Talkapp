@@ -58,13 +58,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 #userList{flex:1;overflow-y:auto}
 .no-result{text-align:center;color:var(--text-muted);padding:40px 20px;font-size:14px;}
 
-#chatScreen {
-    display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg);
-}
-.chat-header {
-    background:var(--panel); display:flex; align-items:center; gap:12px; padding:10px 16px; 
-    border-bottom:1px solid var(--border); flex-shrink: 0; z-index: 10;
-}
+#chatScreen {display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg);}
+.chat-header {background:var(--panel); display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--border); flex-shrink: 0; z-index: 10;}
 .chat-header-info{flex:1}
 .chat-header-info .name{font-size:16px;font-weight:600;color:var(--text)}
 .chat-header-info .status-line{font-size:12px;color:var(--green);margin-top:1px}
@@ -124,7 +119,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   </button>
 </div>
 
-<!-- USERNAME SCREEN -->
+<!-- USERNAME, HOME, SEARCH, CHAT SCREEN -->
 <div id="usernameScreen" class="screen">
   <div class="username-card">
     <h3>Choose a Username</h3>
@@ -134,18 +129,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   </div>
 </div>
 
-<!-- HOME SCREEN -->
 <div id="homeScreen" class="screen">
   <div class="app-header">
     <div class="header-top">
       <h1>TalkApp</h1>
       <div class="header-actions">
-        <button class="icon-btn" id="searchBtn" title="Search users">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </button>
-        <button class="icon-btn" id="logoutBtn" title="Logout">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
+        <button class="icon-btn" id="searchBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        <button class="icon-btn" id="logoutBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
       </div>
     </div>
     <div class="tabs"><div class="tab active">Chats</div></div>
@@ -153,12 +143,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   <div id="chatList"></div>
 </div>
 
-<!-- SEARCH SCREEN -->
 <div id="searchScreen" class="screen">
   <div class="search-header">
-    <button class="icon-btn" id="backBtn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
+    <button class="icon-btn" id="backBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="search-bar">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8696a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="searchInput" placeholder="Search by username..." autocomplete="off">
@@ -167,12 +154,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   <div id="userList"></div>
 </div>
 
-<!-- CHAT SCREEN -->
 <div id="chatScreen" class="screen">
   <div class="chat-header">
-    <button class="icon-btn" id="backBtn2">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
+    <button class="icon-btn" id="backBtn2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="avatar-wrap">
       <div class="avatar" id="chatAvatar">?</div>
       <div class="online-dot" id="chatOnlineDot" style="display:none"></div>
@@ -197,7 +181,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   </div>
 </div>
 
-<!-- EMOJI PICKER -->
 <div class="emoji-picker" id="emojiPicker" style="display:none">
   <span data-e="😂">😂</span>
   <span data-e="❤️">❤️</span>
@@ -205,9 +188,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
   <span data-e="🔥">🔥</span>
   <span data-e="😮">😮</span>
   <span data-e="😢">😢</span>
-</div>
-
-<script type="module">
+    </div>
+    <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, orderBy, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -283,7 +265,7 @@ onAuthStateChanged(auth, async user => {
 function showLogin() { $("login").style.display = "flex"; }
 function hideLogin() { $("login").style.display = "none"; }
 
-// Username Setup
+// Username
 $("saveUsername").onclick = async () => {
   let name = $("usernameInput").value.toLowerCase().trim().replace(/\s+/g, "_");
   if (!name) return;
@@ -362,7 +344,7 @@ $("searchInput").oninput = async () => {
   if (found === 0) list.innerHTML = `<div class="no-result">No user found for "<b>${term}</b>"</div>`;
 };
 
-// Open Chat (Fixed + Smooth)
+// Open Chat - Fixed
 async function openChat(u) {
   if (myData.blocked?.includes(u.uid)) {
     alert("You've blocked this user. Unblock to chat.");
@@ -374,4 +356,132 @@ async function openChat(u) {
   currentUser = u;
   currentChatId = [ME.uid, u.uid].sort().join("_");
 
-  $("chatNa
+  $("chatName").innerText = u.name;
+  $("chatAvatar").innerText = avatarLetter(u.name);
+  $("messages").innerHTML = "";
+  $("typing").innerText = "";
+  replyMsg = null;
+  $("replyBox").style.display = "none";
+  $("msgInput").value = "";
+  $("blockBtn").innerText = myData.blocked?.includes(u.uid) ? "Unblock" : "Block";
+
+  show("chatScreen");
+
+  await setDoc(doc(db, "chats", currentChatId), { users: currentChatId.split("_") }, { merge: true });
+
+  const msgsRef = query(collection(db, "chats", currentChatId, "messages"), orderBy("time"));
+  unsubMessages = onSnapshot(msgsRef, snap => {
+    const container = $("messages");
+    const isNearBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
+
+    container.innerHTML = "";
+
+    snap.forEach(docu => {
+      const m = docu.data();
+      const isMe = m.uid === ME.uid;
+
+      if (!isMe && !m.seen) updateDoc(doc(db, "chats", currentChatId, "messages", docu.id), { seen: true });
+
+      const wrap = document.createElement("div");
+      wrap.className = "msg-wrapper";
+      wrap.style.cssText = `display:flex;flex-direction:column;align-items:${isMe ? "flex-end" : "flex-start"}`;
+
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `msg ${isMe ? "me" : "other"}`;
+
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble";
+      bubble.innerHTML = (m.reply ? `<div class="reply-preview">↩ ${m.reply}</div>` : "") + 
+                         (m.deleted ? `<i style="color:var(--text-muted)">This message was deleted</i>` : m.text);
+
+      if (m.reaction) {
+        const r = document.createElement("div");
+        r.className = "reaction-badge";
+        r.textContent = m.reaction;
+        bubble.appendChild(r);
+      }
+
+      const meta = document.createElement("div");
+      meta.className = "msg-meta";
+      meta.innerHTML = `<span class="msg-time">${formatTime(m.time)}</span>`;
+      if (isMe) {
+        const tick = document.createElement("span");
+        tick.className = `tick${m.seen ? " blue" : ""}`;
+        tick.innerHTML = m.seen ? TICK_DOUBLE : TICK_SINGLE;
+        meta.appendChild(tick);
+      }
+
+      msgDiv.appendChild(bubble);
+      msgDiv.appendChild(meta);
+      wrap.appendChild(msgDiv);
+      container.appendChild(wrap);
+    });
+
+    if (isNearBottom || snap.docs.length < 10) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
+  });
+
+  unsubPresence = onSnapshot(doc(db, "users", u.uid), d => {
+    if (!d.exists()) return;
+    const data = d.data();
+    const online = !!data.online;
+    $("statusLine").textContent = online ? "online" : lastSeenText(data.lastSeen || Date.now());
+    $("statusLine").className = online ? "status-line" : "status-line offline";
+    $("chatOnlineDot").style.display = online ? "block" : "none";
+  });
+
+  unsubTyping = onSnapshot(doc(db, "typing", currentChatId), d => {
+    if (typingClearTimer) clearTimeout(typingClearTimer);
+    $("typing").textContent = "";
+    if (!d.exists()) return;
+    const t = d.data();
+    if (t.uid !== ME.uid && Date.now() - t.time < 3000) {
+      $("typing").textContent = "typing...";
+      typingClearTimer = setTimeout(() => $("typing").textContent = "", 3000);
+    }
+  });
+}
+
+// Send, Input, Block, Back
+$("sendBtn").onclick = async () => {
+  const text = $("msgInput").value.trim();
+  if (!text || !currentChatId) return;
+  await addDoc(collection(db, "chats", currentChatId, "messages"), {
+    text, uid: ME.uid, seen: false, deleted: false, reply: replyMsg || null, time: Date.now()
+  });
+  $("msgInput").value = "";
+  replyMsg = null;
+  $("replyBox").style.display = "none";
+};
+
+$("msgInput").addEventListener("keydown", e => { if (e.key === "Enter") $("sendBtn").click(); });
+$("msgInput").oninput = () => { if (currentChatId) setDoc(doc(db, "typing", currentChatId), { uid: ME.uid, time: Date.now() }); };
+
+$("blockBtn").onclick = async () => {
+  if (!currentUser) return;
+  let blocked = myData.blocked || [];
+  if (blocked.includes(currentUser.uid)) {
+    blocked = blocked.filter(id => id !== currentUser.uid);
+    $("blockBtn").innerText = "Block";
+  } else {
+    blocked.push(currentUser.uid);
+    $("blockBtn").innerText = "Unblock";
+  }
+  myData.blocked = blocked;
+  await updateDoc(doc(db, "users", ME.uid), { blocked });
+};
+
+$("backBtn2").onclick = () => { cleanupChatListeners(); currentChatId = null; show("homeScreen"); };
+$("logoutBtn").onclick = async () => {
+  cleanupChatListeners();
+  if (unsubChatList) unsubChatList();
+  if (ME) await updateDoc(doc(db, "users", ME.uid), { online: false, lastSeen: Date.now() });
+  await signOut(auth);
+  showLogin();
+};
+
+$("replyClose").onclick = () => { replyMsg = null; $("replyBox").style.display = "none"; };
+</script>
+</body>
+</html>
