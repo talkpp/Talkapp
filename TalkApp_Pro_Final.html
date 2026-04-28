@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TalkApp Pro — Secure Messaging</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & ROOT ─────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --green:#00c896;
+  --green-dark:#00a37a;
+  --green-glow:rgba(0,200,150,0.18);
+  --bg:#0d1117;
+  --bg2:#111820;
+  --panel:#161e27;
+  --panel2:#1c2733;
+  --panel3:#233040;
+  --text:#e8edf2;
+  --text-muted:#7a8fa0;
+  --text-dim:#4a5e6e;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.04);
+  --bubble-me:#004f3d;
+  --bubble-other:#1c2733;
+  --input-bg:#1c2733;
+  --hover:rgba(255,255,255,0.04);
+  --tick-blue:#4db8e8;
+  --radius:10px;
+  --danger:#ff5c5c;
+  --glass:rgba(22,30,39,0.85);
+}
+
+html,body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);height:100%;overflow:hidden;-webkit-font-smoothing:antialiased;}
+
+/* ── SCREENS ──────────────────────────────────────────────── */
+.screen{display:none;height:100dvh;height:100vh;flex-direction:column;overflow:hidden;}
+.screen.active{display:flex!important;}
+
+/* ── SCROLLBARS ───────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--panel3);border-radius:8px;}
+
+/* ══════════════════════════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════════════════════════ */
+#login{
+  position:relative;
+  justify-content:center;
+  align-items:center;
+  min-height:100dvh;
+  background:var(--bg);
+  overflow:hidden;
+}
+
+/* animated gradient orbs */
+.login-orb{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(80px);
+  opacity:0.25;
+  animation:orbFloat 8s ease-in-out infinite;
+  pointer-events:none;
+}
+.login-orb.o1{width:350px;height:350px;background:radial-gradient(circle,#00c896,transparent);top:-80px;left:-80px;animation-delay:0s;}
+.login-orb.o2{width:280px;height:280px;background:radial-gradient(circle,#0077ff,transparent);bottom:-60px;right:-60px;animation-delay:3s;}
+.login-orb.o3{width:200px;height:200px;background:radial-gradient(circle,#a855f7,transparent);top:40%;left:60%;animation-delay:5s;}
+
+@keyframes orbFloat{
+  0%,100%{transform:translate(0,0) scale(1);}
+  50%{transform:translate(20px,-20px) scale(1.08);}
+}
+
+.login-card{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  background:var(--glass);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:44px 36px 32px;
+  width:340px;
+  max-width:92vw;
+  box-shadow:0 24px 64px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.05);
+  animation:cardIn .6s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes cardIn{
+  from{opacity:0;transform:translateY(28px) scale(.97);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+
+.login-logo{
+  width:76px;height:76px;
+  background:linear-gradient(135deg,var(--green),var(--green-dark));
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:24px;
+  box-shadow:0 0 0 12px var(--green-glow),0 8px 32px rgba(0,200,150,0.3);
+}
+.login-logo svg{width:40px;height:40px;fill:#fff;}
+
+.login-title{
+  font-size:26px;font-weight:800;
+  background:linear-gradient(135deg,#fff 30%,var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:6px;letter-spacing:-.5px;
+}
+.login-version{font-size:11px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;}
+.login-sub{font-size:13.5px;color:var(--text-muted);margin-bottom:28px;text-align:center;line-height:1.6;max-width:240px;}
+
+/* Trust badges */
+.trust-badges{
+  display:flex;flex-direction:column;gap:8px;
+  margin-bottom:28px;width:100%;
+}
+.trust-badge{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(0,200,150,0.06);
+  border:1px solid rgba(0,200,150,0.15);
+  border-radius:10px;
+  padding:9px 14px;
+  font-size:12.5px;
+  color:var(--text-muted);
+}
+.trust-badge .badge-icon{font-size:15px;flex-shrink:0;}
+.trust-badge strong{color:var(--text);font-weight:600;}
+
+/* Google button */
+#googleBtn{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  width:100%;
+  background:#fff;
+  color:#1f2937;
+  border:none;border-radius:14px;
+  padding:14px 24px;
+  font-size:15px;font-weight:700;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,0,0,0.35),0 1px 0 rgba(255,255,255,0.8) inset;
+  transition:all .2s cubic-bezier(.16,1,.3,1);
+  margin-bottom:16px;
+}
+#googleBtn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,0.4);}
+#googleBtn:active{transform:translateY(0);}
+#googleBtn img{width:20px;height:20px;}
+
+.login-info{
+  font-size:11.5px;color:var(--text-dim);
+  text-align:center;line-height:1.6;margin-bottom:20px;
+}
+
+.login-footer-links{
+  display:flex;gap:16px;justify-content:center;
+  font-size:11.5px;
+}
+.login-footer-links a{
+  color:var(--green);text-decoration:none;cursor:pointer;
+  transition:opacity .15s;
+}
+.login-footer-links a:hover{opacity:.75;}
+
+.login-copyright{
+  font-size:10.5px;color:var(--text-dim);
+  text-align:center;margin-top:8px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   USERNAME SCREEN
+══════════════════════════════════════════════════════════ */
+#usernameScreen{background:var(--bg);justify-content:center;align-items:center;}
+.username-card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:20px;padding:40px 32px;
+  width:320px;max-width:92vw;
+  text-align:center;
+  box-shadow:0 16px 48px rgba(0,0,0,0.4);
+  animation:cardIn .5s cubic-bezier(.16,1,.3,1) both;
+}
+.username-card h3{font-size:20px;font-weight:700;margin-bottom:8px;color:var(--text);}
+.username-card p{font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.5;}
+.username-card input{
+  width:100%;padding:13px 16px;
+  background:var(--input-bg);
+  border:2px solid transparent;
+  border-radius:var(--radius);
+  color:var(--text);font-size:15px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  outline:none;transition:.2s;margin-bottom:16px;
+}
+.username-card input:focus{border-color:var(--green);}
+.username-card button{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,var(--green),var(--green-dark));
+  color:#fff;border:none;border-radius:var(--radius);
+  font-size:15px;font-weight:700;
+  font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;
+  transition:.2s;
+}
+.username-card button:hover{filter:brightness(1.1);}
+
+/* ══════════════════════════════════════════════════════════
+   HOME SCREEN
+══════════════════════════════════════════════════════════ */
+#homeScreen{background:var(--bg);}
+.app-header{background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;}
+.header-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px 12px;
+}
+.header-top h1{
+  font-size:22px;font-weight:800;letter-spacing:-.4px;
+  background:linear-gradient(135deg,#fff,var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.header-actions{display:flex;gap:4px;}
+.icon-btn{
+  width:38px;height:38px;
+  background:transparent;border:none;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--text-muted);
+  transition:.15s;
+}
+.icon-btn:hover{background:var(--hover);color:var(--text);}
+.tabs{display:flex;padding:0 4px;}
+.tab{
+  flex:1;text-align:center;padding:10px 0;
+  font-size:12px;font-weight:700;
+  color:var(--text-dim);
+  border-bottom:3px solid transparent;
+  cursor:pointer;letter-spacing:.8px;text-transform:uppercase;
+  transition:.2s;
+}
+.tab.active{color:var(--green);border-bottom-color:var(--green);}
+
+#chatList{flex:1;overflow-y:auto;}
+.chatItem{
+  display:flex;align-items:center;gap:14px;
+  padding:13px 18px;cursor:pointer;
+  border-bottom:1px solid var(--border2);
+  transition:.12s;
+}
+.chatItem:hover{background:var(--hover);}
+.avatar{
+  width:48px;height:48px;min-width:48px;border-radius:50%;
+  background:linear-gradient(135deg,var(--panel3),var(--panel2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;font-weight:700;color:var(--text);text-transform:uppercase;
+  border:2px solid var(--border);
+}
+.chat-info{flex:1;min-width:0;}
+.chat-name{font-size:15.5px;font-weight:600;color:var(--text);}
+.chat-preview{font-size:12.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.online-dot{
+  width:11px;height:11px;border-radius:50%;
+  background:var(--green);
+  border:2.5px solid var(--panel);
+  position:absolute;bottom:1px;right:1px;
+}
+.avatar-wrap{position:relative;flex-shrink:0;}
+
+/* ══════════════════════════════════════════════════════════
+   SEARCH SCREEN
+══════════════════════════════════════════════════════════ */
+#searchScreen{background:var(--bg);}
+.search-header{
+  background:var(--panel);
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.search-bar{
+  flex:1;display:flex;align-items:center;gap:10px;
+  background:var(--input-bg);border-radius:12px;
+  padding:0 14px;border:1.5px solid transparent;
+  transition:.2s;
+}
+.search-bar:focus-within{border-color:var(--green);}
+.search-bar input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-size:15px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  padding:11px 0;
+}
+.search-bar input::placeholder{color:var(--text-muted);}
+#userList{flex:1;overflow-y:auto;}
+.no-result{text-align:center;color:var(--text-muted);padding:40px 20px;font-size:14px;}
+
+/* ══════════════════════════════════════════════════════════
+   CHAT SCREEN
+══════════════════════════════════════════════════════════ */
+#chatScreen{background:var(--bg);display:flex;flex-direction:column;height:100dvh;height:100vh;overflow:hidden;}
+.chat-header{
+  background:var(--panel);
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:20;
+}
+.chat-header-info{flex:1;}
+.chat-header-info .name{font-size:16px;font-weight:700;color:var(--text);}
+.chat-header-info .status-line{font-size:12px;color:var(--green);margin-top:2px;}
+.chat-header-info .status-line.offline{color:var(--text-muted);}
+
+#typing{
+  font-size:12px;color:var(--green);
+  padding:4px 20px 0;height:22px;
+  font-style:italic;flex-shrink:0;
+  font-weight:500;
+}
+
+#messages{
+  flex:1;overflow-y:auto;
+  padding:14px 6% 20px;
+  background:var(--bg);
+  display:flex;flex-direction:column;gap:6px;
+  min-height:0;
+}
+.msg{display:flex;flex-direction:column;max-width:68%;margin-bottom:2px;}
+.msg.me{align-self:flex-end;align-items:flex-end;}
+.msg.other{align-self:flex-start;align-items:flex-start;}
+.msg-bubble{
+  padding:9px 13px;border-radius:var(--radius);
+  font-size:14.5px;line-height:1.5;
+  word-break:break-word;position:relative;
+}
+.msg.me .msg-bubble{
+  background:linear-gradient(135deg,#005a45,var(--bubble-me));
+  border-bottom-right-radius:3px;color:#e8edf2;
+}
+.msg.other .msg-bubble{background:var(--bubble-other);border-bottom-left-radius:3px;color:#e8edf2;}
+.msg-meta{display:flex;align-items:center;gap:4px;margin-top:3px;justify-content:flex-end;}
+.msg-time{font-size:10.5px;color:var(--text-muted);}
+.tick{display:flex;align-items:center;color:var(--text-muted);line-height:1;}
+.tick.blue{color:var(--tick-blue);}
+.reply-preview{
+  background:rgba(0,0,0,0.25);
+  border-left:3px solid var(--green);
+  border-radius:4px;padding:5px 8px;
+  margin-bottom:6px;font-size:12px;color:var(--text-muted);
+}
+.reaction-badge{
+  font-size:16px;position:absolute;bottom:-10px;right:6px;
+  background:var(--panel2);border-radius:10px;padding:1px 5px;
+  box-shadow:0 1px 6px rgba(0,0,0,0.4);
+}
+.msg-wrapper{display:flex;flex-direction:column;margin-bottom:4px;}
+
+#replyBox{
+  background:var(--panel2);border-left:4px solid var(--green);
+  padding:8px 14px;margin:0 14px;
+  border-radius:0 var(--radius) var(--radius) 0;
+  font-size:13px;color:var(--text-muted);
+  display:none;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+#replyClose{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 0 0 10px;}
+
+.input-area{
+  background:var(--panel);
+  padding:10px 14px 28px;
+  display:flex;align-items:center;gap:10px;
+  border-top:1px solid var(--border);
+  flex-shrink:0;z-index:15;
+}
+.input-area input{
+  flex:1;background:var(--input-bg);border:1.5px solid transparent;
+  border-radius:24px;padding:11px 18px;
+  color:var(--text);font-size:15px;
+  font-family:'Plus Jakarta Sans',sans-serif;outline:none;
+  transition:.2s;
+}
+.input-area input:focus{border-color:rgba(0,200,150,0.3);}
+.input-area input::placeholder{color:var(--text-muted);}
+#sendBtn{
+  width:44px;height:44px;min-width:44px;
+  background:linear-gradient(135deg,var(--green),var(--green-dark));
+  border:none;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:.15s;
+  box-shadow:0 4px 16px rgba(0,200,150,0.25);
+}
+#sendBtn:hover{filter:brightness(1.1);transform:scale(1.05);}
+#sendBtn svg{width:20px;height:20px;fill:#fff;transform:translateX(1px);}
+#blockBtn{
+  background:transparent;
+  border:1px solid rgba(255,80,80,0.4);
+  color:var(--danger);border-radius:8px;
+  padding:6px 12px;font-size:12px;font-weight:600;
+  font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;
+  white-space:nowrap;transition:.2s;
+}
+#blockBtn:hover{background:rgba(255,80,80,0.08);}
+
+/* Emoji Picker */
+.emoji-picker{
+  position:fixed;z-index:999;
+  background:var(--panel2);border-radius:28px;
+  padding:10px 14px;
+  display:flex;gap:8px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 1px var(--border);
+  font-size:22px;
+  animation:popIn .12s ease;
+}
+@keyframes popIn{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+.emoji-picker span{cursor:pointer;transition:.1s;line-height:1;}
+.emoji-picker span:hover{transform:scale(1.3);}
+
+/* ══════════════════════════════════════════════════════════
+   MODAL BASE
+══════════════════════════════════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  display:none;align-items:flex-end;justify-content:center;
+  padding:0;
+}
+.modal-overlay.open{display:flex;}
+.modal-sheet{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:24px 24px 0 0;
+  width:100%;max-width:480px;
+  max-height:88vh;
+  overflow-y:auto;
+  padding:0 0 40px;
+  animation:sheetUp .35s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes sheetUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-handle{width:40px;height:4px;background:var(--panel3);border-radius:4px;margin:14px auto 0;}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px 0;
+}
+.modal-header h2{font-size:18px;font-weight:800;color:var(--text);}
+.modal-close{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--panel2);border:none;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--text-muted);font-size:18px;
+  transition:.15s;
+}
+.modal-close:hover{background:var(--panel3);color:var(--text);}
+.modal-body{padding:20px 24px 0;}
+
+/* ══════════════════════════════════════════════════════════
+   ABOUT MODAL
+══════════════════════════════════════════════════════════ */
+.about-logo{
+  width:68px;height:68px;
+  background:linear-gradient(135deg,var(--green),var(--green-dark));
+  border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;
+  box-shadow:0 8px 24px rgba(0,200,150,0.25);
+}
+.about-logo svg{width:38px;height:38px;fill:#fff;}
+.about-app-name{font-size:22px;font-weight:800;color:var(--text);margin-bottom:3px;}
+.about-version{font-size:12px;color:var(--text-dim);letter-spacing:.5px;margin-bottom:16px;}
+.about-desc{font-size:14px;color:var(--text-muted);line-height:1.7;margin-bottom:24px;}
+
+.about-section{margin-bottom:22px;}
+.about-section-title{
+  font-size:11px;font-weight:700;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--green);
+  margin-bottom:12px;
+}
+.about-row{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px;
+  background:var(--panel2);
+  border-radius:12px;
+  margin-bottom:8px;
+  border:1px solid var(--border2);
+}
+.about-row-icon{
+  font-size:20px;flex-shrink:0;
+  width:40px;height:40px;
+  background:rgba(0,200,150,0.08);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+}
+.about-row-text h4{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.about-row-text p{font-size:12px;color:var(--text-muted);line-height:1.5;}
+
+.about-divider{height:1px;background:var(--border);margin:20px 0;}
+.about-dev{
+  display:flex;align-items:center;gap:14px;
+  padding:14px;background:var(--panel2);border-radius:14px;
+  border:1px solid var(--border);
+}
+.about-dev-avatar{
+  width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(135deg,#005a45,#003d2d);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700;color:#fff;
+  flex-shrink:0;
+}
+.about-dev-info h4{font-size:14px;font-weight:700;color:var(--text);}
+.about-dev-info p{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.about-copyright{
+  font-size:11.5px;color:var(--text-dim);
+  text-align:center;margin-top:20px;line-height:1.7;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PRIVACY MODAL
+══════════════════════════════════════════════════════════ */
+.privacy-section{margin-bottom:22px;}
+.privacy-section h3{
+  font-size:13px;font-weight:700;color:var(--text);
+  margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.privacy-section h3 span{
+  width:28px;height:28px;
+  background:rgba(0,200,150,0.1);
+  border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:14px;
+}
+.privacy-section p{
+  font-size:13px;color:var(--text-muted);
+  line-height:1.7;
+}
+.privacy-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(0,200,150,0.08);
+  border:1px solid rgba(0,200,150,0.2);
+  border-radius:8px;padding:5px 10px;
+  font-size:12px;color:var(--green);font-weight:600;
+  margin:4px 4px 4px 0;
+}
+.privacy-last-updated{
+  font-size:11px;color:var(--text-dim);
+  text-align:center;margin-top:16px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   LOADING SPINNER
+══════════════════════════════════════════════════════════ */
+.loading-dot{
+  display:inline-block;width:6px;height:6px;
+  border-radius:50%;background:var(--green);
+  animation:pulse 1.2s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOAST NOTIFICATION
+══════════════════════════════════════════════════════════ */
+#toast{
+  position:fixed;bottom:90px;left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--panel2);border:1px solid var(--border);
+  color:var(--text);font-size:13px;font-weight:500;
+  padding:10px 20px;border-radius:24px;
+  z-index:9999;pointer-events:none;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  opacity:0;transition:all .3s cubic-bezier(.16,1,.3,1);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ══════════════════════════════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════════════════════════════ */
+.empty-state{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:40px 20px;
+  color:var(--text-muted);
+  text-align:center;
+}
+.empty-state .es-icon{font-size:48px;margin-bottom:16px;opacity:.4;}
+.empty-state h3{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.empty-state p{font-size:13px;line-height:1.6;max-width:220px;}
+
+/* ══════════════════════════════════════════════════════════
+   INFO FOOTER ON HOME
+══════════════════════════════════════════════════════════ */
+.home-footer{
+  padding:12px 20px;
+  text-align:center;
+  font-size:11px;
+  color:var(--text-dim);
+  border-top:1px solid var(--border2);
+  background:var(--panel);
+  flex-shrink:0;
+}
+.home-footer a{color:var(--green);cursor:pointer;text-decoration:none;}
+.home-footer a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════ -->
+<div id="login" class="screen">
+  <div class="login-orb o1"></div>
+  <div class="login-orb o2"></div>
+  <div class="login-orb o3"></div>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2C6.477 2 2 6.477 2 12c0 1.82.487 3.53 1.338 5.01L2 22l5.09-1.323A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+      </svg>
+    </div>
+
+    <div class="login-title">TalkApp Pro</div>
+    <div class="login-version">Version 2.0</div>
+    <div class="login-sub">Fast, secure &amp; private messaging — completely free</div>
+
+    <div class="trust-badges">
+      <div class="trust-badge">
+        <span class="badge-icon">🔐</span>
+        <div><strong>Secure Google Login</strong> — Official Firebase OAuth 2.0</div>
+      </div>
+      <div class="trust-badge">
+        <span class="badge-icon">🚫</span>
+        <div><strong>No Password Stored</strong> — We never see your password</div>
+      </div>
+      <div class="trust-badge">
+        <span class="badge-icon">🛡️</span>
+        <div><strong>Private &amp; Ad-Free</strong> — No tracking, no ads ever</div>
+      </div>
+    </div>
+
+    <button id="googleBtn">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      Continue with Google
+    </button>
+
+    <div class="login-info">
+      By signing in, you agree to our<br>
+      <a onclick="openPrivacy()" style="color:var(--green);cursor:pointer;">Privacy Policy</a> &amp; 
+      <a onclick="openAbout()" style="color:var(--green);cursor:pointer;">Terms of Use</a>
+    </div>
+
+    <div class="login-footer-links">
+      <a onclick="openAbout()">About</a>
+      <a onclick="openPrivacy()">Privacy Policy</a>
+      <a onclick="openAbout()">Help</a>
+    </div>
+    <div class="login-copyright">© 2024 TalkApp Pro. All rights reserved.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     USERNAME SCREEN
+══════════════════════════════════════════════ -->
+<div id="usernameScreen" class="screen">
+  <div class="username-card">
+    <h3>Choose a Username</h3>
+    <p>This is how people will find and message you on TalkApp Pro.</p>
+    <input id="usernameInput" placeholder="e.g. john_doe" autocomplete="off" spellcheck="false">
+    <button id="saveUsername">Get Started 🚀</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     HOME SCREEN
+══════════════════════════════════════════════ -->
+<div id="homeScreen" class="screen">
+  <div class="app-header">
+    <div class="header-top">
+      <h1>TalkApp</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="searchBtn" title="Search users">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <button class="icon-btn" id="aboutHomeBtn" title="About">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </button>
+        <button class="icon-btn" id="logoutBtn" title="Logout">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="tabs"><div class="tab active">Chats</div></div>
+  </div>
+  <div id="chatList" style="flex:1;overflow-y:auto;"></div>
+  <div class="home-footer">
+    <a onclick="openAbout()">About</a> &nbsp;·&nbsp;
+    <a onclick="openPrivacy()">Privacy Policy</a> &nbsp;·&nbsp;
+    <a onclick="openAbout()">Help</a>
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    © 2024 TalkApp Pro
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SEARCH SCREEN
+══════════════════════════════════════════════ -->
+<div id="searchScreen" class="screen">
+  <div class="search-header">
+    <button class="icon-btn" id="backBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="search-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a8fa0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" placeholder="Search by username..." autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+  <div id="userList" style="flex:1;overflow-y:auto;"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     CHAT SCREEN
+══════════════════════════════════════════════ -->
+<div id="chatScreen" class="screen">
+  <div class="chat-header">
+    <button class="icon-btn" id="backBtn2">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="avatar-wrap">
+      <div class="avatar" id="chatAvatar">?</div>
+      <div class="online-dot" id="chatOnlineDot" style="display:none;"></div>
+    </div>
+    <div class="chat-header-info">
+      <div class="name" id="chatName"></div>
+      <div class="status-line offline" id="statusLine">last seen recently</div>
+    </div>
+    <button id="blockBtn">Block</button>
+  </div>
+  <div id="typing"></div>
+  <div id="messages"></div>
+  <div id="replyBox">
+    <span id="replyText"></span>
+    <button id="replyClose">✕</button>
+  </div>
+  <div class="input-area">
+    <input id="msgInput" placeholder="Message..." autocomplete="off">
+    <button id="sendBtn">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     EMOJI PICKER
+══════════════════════════════════════════════ -->
+<div class="emoji-picker" id="emojiPicker" style="display:none;">
+  <span data-e="😂">😂</span>
+  <span data-e="❤️">❤️</span>
+  <span data-e="👍">👍</span>
+  <span data-e="🔥">🔥</span>
+  <span data-e="😮">😮</span>
+  <span data-e="😢">😢</span>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     ABOUT MODAL
+══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="aboutModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2>About TalkApp Pro</h2>
+      <button class="modal-close" onclick="closeModal('aboutModal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div style="text-align:center;margin-bottom:20px;">
+        <div class="about-logo" style="margin:0 auto 12px;">
+          <svg viewBox="0 0 24 24" style="width:38px;height:38px;fill:#fff;">
+            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.82.487 3.53 1.338 5.01L2 22l5.09-1.323A9.96 9.96 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+          </svg>
+        </div>
+        <div class="about-app-name">TalkApp Pro</div>
+        <div class="about-version">Version 2.0 · Build 2024</div>
+      </div>
+
+      <p class="about-desc">TalkApp Pro is a fast, secure, and completely private messaging platform. Built with modern technology to ensure your conversations stay between you and the person you're talking to — no ads, no tracking, no compromises.</p>
+
+      <!-- SECURITY -->
+      <div class="about-section">
+        <div class="about-section-title">🔒 Security & Privacy</div>
+        <div class="about-row">
+          <div class="about-row-icon">🔐</div>
+          <div class="about-row-text">
+            <h4>Google OAuth 2.0 Authentication</h4>
+            <p>We use official Google sign-in via Firebase. Your credentials are handled entirely by Google — we never see your password.</p>
+          </div>
+        </div>
+        <div class="about-row">
+          <div class="about-row-icon">🚫</div>
+          <div class="about-row-text">
+            <h4>Zero Password Storage</h4>
+            <p>TalkApp Pro does not store, transmit, or process any passwords. Authentication is fully delegated to Google's secure infrastructure.</p>
+          </div>
+        </div>
+        <div class="about-row">
+          <div class="about-row-icon">📡</div>
+          <div class="about-row-text">
+            <h4>Firebase Secure Backend</h4>
+            <p>All data is stored on Google Firebase with security rules. Your messages are protected by Google Cloud's enterprise-grade security.</p>
+          </div>
+        </div>
+        <div class="about-row">
+          <div class="about-row-icon">🛡️</div>
+          <div class="about-row-text">
+            <h4>No Ads, No Tracking</h4>
+            <p>We do not run ads, sell your data, or track your behaviour. What you talk about is your business, not ours.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FEATURES -->
+      <div class="about-section">
+        <div class="about-section-title">✨ Features</div>
+        <div class="about-row">
+          <div class="about-row-icon">💬</div>
+          <div class="about-row-text">
+            <h4>Real-Time Messaging</h4>
+            <p>Instant message delivery with live typing indicators and read receipts.</p>
+          </div>
+        </div>
+        <div class="about-row">
+          <div class="about-row-icon">😎</div>
+          <div class="about-row-text">
+            <h4>Emoji Reactions & Replies</h4>
+            <p>React to messages with emojis and reply to specific messages in a thread.</p>
+          </div>
+        </div>
+        <div class="about-row">
+          <div class="about-row-icon">🔍</div>
+          <div class="about-row-text">
+            <h4>User Search</h4>
+            <p>Find any user by their username and start a conversation instantly.</p>
+          </div>
+        </div>
+        <div class="about-row">
+          <div class="about-row-icon">🚷</div>
+          <div class="about-row-text">
+            <h4>Block / Unblock</h4>
+            <p>You are in full control. Block or unblock any user at any time.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-divider"></div>
+
+      <!-- DEVELOPER -->
+      <div class="about-section">
+        <div class="about-section-title">👨‍💻 Developer</div>
+        <div class="about-dev">
+          <div class="about-dev-avatar">T</div>
+          <div class="about-dev-info">
+            <h4>TalkApp Team</h4>
+            <p>Built with ❤️ using Firebase &amp; Vanilla JS<br>Open source · Free forever</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-divider"></div>
+
+      <!-- TECH STACK -->
+      <div class="about-section">
+        <div class="about-section-title">🧱 Built With</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <span class="privacy-tag">🔥 Firebase Auth</span>
+          <span class="privacy-tag">🗄️ Firestore DB</span>
+          <span class="privacy-tag">🌐 Vanilla JS</span>
+          <span class="privacy-tag">🎨 CSS3</span>
+          <span class="privacy-tag">🔑 OAuth 2.0</span>
+          <span class="privacy-tag">📱 Mobile First</span>
+        </div>
+      </div>
+
+      <div class="about-copyright">
+        © 2024 TalkApp Pro. All rights reserved.<br>
+        Made with ❤️ — Free, secure &amp; always private.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PRIVACY POLICY MODAL
+══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="privacyModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2>Privacy Policy</h2>
+      <button class="modal-close" onclick="closeModal('privacyModal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
+          <span class="privacy-tag">🔒 Secure</span>
+          <span class="privacy-tag">🚫 No Ads</span>
+          <span class="privacy-tag">🛡️ No Tracking</span>
+          <span class="privacy-tag">🚫 No Password Stored</span>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+          Your privacy is our top priority. This policy explains what data we collect, how we use it, and how it is protected.
+        </p>
+      </div>
+
+      <div class="privacy-section">
+        <h3><span>📋</span> What We Collect</h3>
+        <p>When you sign in with Google, we receive your <strong style="color:var(--text);">display name, email address, and profile photo URL</strong> from your Google account. We also store your chosen username, your list of conversations, and messages you send.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3><span>🚫</span> What We Do NOT Collect</h3>
+        <p>We do <strong style="color:var(--text);">not</strong> collect, store, or process your Google password — ever. We do not store payment information, device identifiers, or browsing history. We do not run analytics or third-party ad trackers.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3><span>🔐</span> Authentication Security</h3>
+        <p>Authentication is handled entirely by <strong style="color:var(--text);">Google Firebase OAuth 2.0</strong>. When you tap "Continue with Google," you are redirected to Google's secure login page. Your password is entered directly with Google — TalkApp Pro never sees, receives, or stores it at any point.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3><span>🗄️</span> Data Storage</h3>
+        <p>All data is stored on <strong style="color:var(--text);">Google Cloud Firestore</strong>, protected by Firebase Security Rules. Only authenticated users can access their own data. Messages are accessible only to the two participants in a conversation.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3><span>📤</span> Data Sharing</h3>
+        <p>We do not sell, rent, trade, or share your personal data with any third parties for any purpose. Your data is used solely to provide the TalkApp Pro messaging service.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3><span>🗑️</span> Data Deletion</h3>
+        <p>You may request deletion of your account and all associated data at any time by contacting us. Upon deletion, your messages, username, and profile data will be permanently removed from our servers.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3><span>🍪</span> Cookies & Local Storage</h3>
+        <p>TalkApp Pro uses browser local storage only to maintain your authenticated session via Firebase. No tracking cookies are used. No third-party cookies are set.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3><span>📬</span> Contact</h3>
+        <p>For any privacy-related questions or data deletion requests, please reach out through the app's About section or contact the developer directly.</p>
+      </div>
+
+      <div class="privacy-last-updated">
+        Last updated: December 2024<br>
+        © 2024 TalkApp Pro. All rights reserved.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup,
+  onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDoc,
+  collection, addDoc, onSnapshot,
+  query, orderBy, updateDoc, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── Firebase Init ────────────────────────────────────────────
+const app = initializeApp({
+  apiKey: "AIzaSyCz0Bwl9Vz79DNOnFN4t9TaEKtKKUL5m8o",
+  authDomain: "talkapp-70bee.firebaseapp.com",
+  projectId: "talkapp-70bee"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── State ────────────────────────────────────────────────────
+let ME = null, myData = null;
+let currentUser = null, currentChatId = null;
+let replyMsg = null;
+let unsubMessages = null, unsubPresence = null,
+    unsubTyping = null, unsubChatList = null;
+let typingClearTimer = null;
+
+// ── Helpers ──────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => {
+    s.classList.remove("active");
+    s.style.display = "";
+  });
+  $(id).classList.add("active");
+}
+
+function avatarLetter(name) { return name ? name[0].toUpperCase() : "?"; }
+
+function formatTime(ts) {
+  if (!ts) return "";
+  return new Date(ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+}
+
+function lastSeenText(lastSeen) {
+  if (!lastSeen) return "last seen recently";
+  const sec = Math.floor((Date.now() - lastSeen) / 1000);
+  if (sec < 60)    return "last seen just now";
+  if (sec < 3600)  return `last seen ${Math.floor(sec/60)}m ago`;
+  if (sec < 86400) return `last seen ${Math.floor(sec/3600)}h ago`;
+  return `last seen ${Math.floor(sec/86400)}d ago`;
+}
+
+function showToast(msg, duration = 2500) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), duration);
+}
+
+function cleanupChatListeners() {
+  if (unsubMessages)  unsubMessages();
+  if (unsubPresence)  unsubPresence();
+  if (unsubTyping)    unsubTyping();
+  if (typingClearTimer) clearTimeout(typingClearTimer);
+  unsubMessages = unsubPresence = unsubTyping = typingClearTimer = null;
+}
+
+// ── Tick SVGs ─────────────────────────────────────────────────
+const TICK_SINGLE = `<svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 5l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const TICK_DOUBLE = `<svg width="18" height="10" viewBox="0 0 18 10" fill="none"><path d="M1 5l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 5l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+// ── Auth ──────────────────────────────────────────────────────
+$("googleBtn").onclick = async () => {
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch(e) {
+    if (e.code !== "auth/popup-closed-by-user") {
+      showToast("⚠️ Login failed. Please try again.");
+    }
+  }
+};
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { show("login"); return; }
+
+  ME = user;
+  const ref  = doc(db, "users", ME.uid);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      name: "", uid: ME.uid,
+      blocked: [], lastSeen: Date.now(), online: true
+    });
+    show("usernameScreen");
+    return;
+  }
+
+  myData = snap.data();
+  await updateDoc(ref, { online: true, lastSeen: Date.now() });
+
+  // Mark offline on tab close
+  window.addEventListener("beforeunload", () =>
+    updateDoc(ref, { online: false, lastSeen: Date.now() })
+  );
+
+  if (!myData.name) {
+    show("usernameScreen");
+  } else {
+    show("homeScreen");
+    loadChatList();
+  }
+});
+
+// ── Username ──────────────────────────────────────────────────
+$("saveUsername").onclick = async () => {
+  const raw  = $("usernameInput").value.trim();
+  const name = raw.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+
+  if (!name || name.length < 3) {
+    showToast("⚠️ Username must be at least 3 characters.");
+    return;
+  }
+  if (name.length > 20) {
+    showToast("⚠️ Username too long (max 20 chars).");
+    return;
+  }
+
+  const snap = await getDocs(collection(db, "users"));
+  let taken = false;
+  snap.forEach(d => {
+    if (d.data().name === name && d.id !== ME.uid) taken = true;
+  });
+
+  if (taken) { showToast("❌ Username taken! Try another."); return; }
+
+  await updateDoc(doc(db, "users", ME.uid), { name });
+  myData.name = name;
+  show("homeScreen");
+  loadChatList();
+};
+
+$("usernameInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") $("saveUsername").click();
+});
+
+// ── Chat List ─────────────────────────────────────────────────
+function loadChatList() {
+  if (unsubChatList) unsubChatList();
+
+  unsubChatList = onSnapshot(collection(db, "chats"), async snap => {
+    const container = $("chatList");
+    container.innerHTML = "";
+
+    const promises = [];
+    snap.forEach(d => {
+      const parts = d.id.split("_");
+      if (!parts.includes(ME.uid)) return;
+      const otherUid = parts.find(p => p !== ME.uid);
+      if (otherUid) {
+        promises.push(
+          getDoc(doc(db, "users", otherUid)).then(doc =>
+            doc.exists() ? { chatId: d.id, user: doc.data() } : null
+          )
+        );
+      }
+    });
+
+    const results = (await Promise.all(promises)).filter(Boolean);
+
+    if (results.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="es-icon">💬</div>
+          <h3>No chats yet</h3>
+          <p>Search for a username to start your first conversation.</p>
+        </div>`;
+      return;
+    }
+
+    results.forEach(({ user: u }) => {
+      const div = document.createElement("div");
+      div.className = "chatItem";
+      div.innerHTML = `
+        <div class="avatar-wrap">
+          <div class="avatar">${avatarLetter(u.name)}</div>
+          ${u.online ? `<div class="online-dot"></div>` : ""}
+        </div>
+        <div class="chat-info">
+          <div class="chat-name">${escHtml(u.name)}</div>
+          <div class="chat-preview">${u.online
+            ? `<span style="color:var(--green);font-weight:600;">● Online</span>`
+            : lastSeenText(u.lastSeen)
+          }</div>
+        </div>`;
+      div.onclick = () => openChat(u);
+      container.appendChild(div);
+    });
+  });
+}
+
+// ── Search ─────────────────────────────────────────────────────
+$("searchBtn").onclick = () => {
+  $("searchInput").value = "";
+  $("userList").innerHTML = "";
+  show("searchScreen");
+  setTimeout(() => $("searchInput").focus(), 200);
+};
+$("backBtn").onclick = () => show("homeScreen");
+
+$("searchInput").oninput = async () => {
+  const term = $("searchInput").value.toLowerCase().trim();
+  const list  = $("userList");
+  list.innerHTML = "";
+  if (!term) return;
+
+  const snap = await getDocs(collection(db, "users"));
+  let found = 0;
+  snap.forEach(d => {
+    const u = d.data();
+    if (!u.name || u.uid === ME.uid || !u.name.toLowerCase().includes(term)) return;
+    found++;
+    const div = document.createElement("div");
+    div.className = "chatItem";
+    div.innerHTML = `
+      <div class="avatar-wrap">
+        <div class="avatar">${avatarLetter(u.name)}</div>
+        ${u.online ? `<div class="online-dot"></div>` : ""}
+      </div>
+      <div class="chat-info">
+        <div class="chat-name">${escHtml(u.name)}</div>
+        <div class="chat-preview">${u.online
+          ? `<span style="color:var(--green);font-weight:600;">● Online</span>`
+          : lastSeenText(u.lastSeen)
+        }</div>
+      </div>`;
+    div.onclick = () => openChat(u);
+    list.appendChild(div);
+  });
+
+  if (found === 0) {
+    list.innerHTML = `<div class="no-result">No user found for "<b>${escHtml(term)}</b>"</div>`;
+  }
+};
+
+// ── Open Chat ──────────────────────────────────────────────────
+async function openChat(u) {
+  if (myData.blocked?.includes(u.uid)) {
+    showToast("🚷 You've blocked this user. Unblock to chat.");
+    return;
+  }
+
+  cleanupChatListeners();
+
+  currentUser   = u;
+  currentChatId = [ME.uid, u.uid].sort().join("_");
+
+  $("chatName").innerText    = u.name;
+  $("chatAvatar").innerText  = avatarLetter(u.name);
+  $("messages").innerHTML    = "";
+  $("typing").innerText      = "";
+  replyMsg                   = null;
+  $("replyBox").style.display = "none";
+  $("msgInput").value        = "";
+  $("blockBtn").innerText    = myData.blocked?.includes(u.uid) ? "Unblock" : "Block";
+
+  show("chatScreen");
+
+  await setDoc(doc(db, "chats", currentChatId),
+    { users: currentChatId.split("_") }, { merge: true });
+
+  // ── Messages listener
+  const msgsRef = query(
+    collection(db, "chats", currentChatId, "messages"),
+    orderBy("time")
+  );
+
+  unsubMessages = onSnapshot(msgsRef, snap => {
+    const container = $("messages");
+    const wasNearBottom = Math.abs(
+      container.scrollHeight - container.scrollTop - container.clientHeight
+    ) < 150;
+
+    container.innerHTML = "";
+
+    snap.forEach(docu => {
+      const m     = docu.data();
+      const isMe  = m.uid === ME.uid;
+      const msgId = docu.id;
+
+      // Mark seen
+      if (!isMe && !m.seen) {
+        updateDoc(doc(db, "chats", currentChatId, "messages", msgId), { seen: true });
+      }
+
+      const wrap = document.createElement("div");
+      wrap.className = "msg-wrapper";
+      wrap.style.cssText = `display:flex;flex-direction:column;align-items:${isMe ? "flex-end" : "flex-start"}`;
+
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `msg ${isMe ? "me" : "other"}`;
+
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble";
+      bubble.innerHTML =
+        (m.reply ? `<div class="reply-preview">↩ ${escHtml(m.reply)}</div>` : "") +
+        (m.deleted
+          ? `<i style="color:var(--text-muted);font-size:13px;">This message was deleted</i>`
+          : escHtml(m.text));
+
+      if (m.reaction) {
+        const r = document.createElement("div");
+        r.className = "reaction-badge";
+        r.textContent = m.reaction;
+        bubble.appendChild(r);
+      }
+
+      const meta = document.createElement("div");
+      meta.className = "msg-meta";
+      meta.innerHTML = `<span class="msg-time">${formatTime(m.time)}</span>`;
+
+      if (isMe) {
+        const tick = document.createElement("span");
+        tick.className = `tick${m.seen ? " blue" : ""}`;
+        tick.innerHTML = m.seen ? TICK_DOUBLE : TICK_SINGLE;
+        meta.appendChild(tick);
+      }
+
+      msgDiv.appendChild(bubble);
+      msgDiv.appendChild(meta);
+
+      // Tap to reply
+      msgDiv.onclick = () => {
+        if (m.deleted) return;
+        replyMsg = m.text;
+        $("replyText").innerText = "↩ " + m.text;
+        $("replyBox").style.display = "flex";
+        $("msgInput").focus();
+      };
+
+      // Long-press emoji picker (mobile)
+      let pressTimer;
+      msgDiv.addEventListener("touchstart", e => {
+        pressTimer = setTimeout(() => {
+          showEmojiPicker(e.touches[0].clientX, e.touches[0].clientY, msgId);
+        }, 600);
+      });
+      msgDiv.addEventListener("touchend",  () => clearTimeout(pressTimer));
+      msgDiv.addEventListener("touchmove", () => clearTimeout(pressTimer));
+
+      wrap.appendChild(msgDiv);
+      container.appendChild(wrap);
+    });
+
+    if (wasNearBottom || snap.docs.length < 10) {
+      setTimeout(() => container.scrollTo({ top: container.scrollHeight, behavior: "smooth" }), 10);
+    }
+  });
+
+  // ── Presence listener
+  unsubPresence = onSnapshot(doc(db, "users", u.uid), d => {
+    if (!d.exists()) return;
+    const data   = d.data();
+    const online = !!data.online;
+    $("statusLine").textContent  = online ? "online" : lastSeenText(data.lastSeen || Date.now());
+    $("statusLine").className    = online ? "status-line" : "status-line offline";
+    $("chatOnlineDot").style.display = online ? "block" : "none";
+  });
+
+  // ── Typing listener
+  unsubTyping = onSnapshot(doc(db, "typing", currentChatId), d => {
+    if (typingClearTimer) clearTimeout(typingClearTimer);
+    $("typing").textContent = "";
+    if (!d.exists()) return;
+    const t = d.data();
+    if (t.uid !== ME.uid && Date.now() - t.time < 3000) {
+      $("typing").textContent = "typing...";
+      typingClearTimer = setTimeout(() => $("typing").textContent = "", 2800);
+    }
+  });
+}
+
+// ── Emoji Picker ───────────────────────────────────────────────
+function showEmojiPicker(x, y, msgId) {
+  const picker = $("emojiPicker");
+  picker.style.display = "flex";
+  picker.style.left    = Math.min(x, window.innerWidth - 260) + "px";
+  picker.style.top     = Math.max(y - 80, 20) + "px";
+
+  picker.querySelectorAll("span").forEach(s => {
+    s.onclick = () => {
+      if (msgId && currentChatId) {
+        updateDoc(doc(db, "chats", currentChatId, "messages", msgId), { reaction: s.dataset.e });
+      }
+      picker.style.display = "none";
+    };
+  });
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest("#emojiPicker") && !e.target.closest(".msg")) {
+    $("emojiPicker").style.display = "none";
+  }
+});
+
+// ── Send Message ───────────────────────────────────────────────
+$("sendBtn").onclick = async () => {
+  const text = $("msgInput").value.trim();
+  if (!text || !currentChatId) return;
+
+  await addDoc(collection(db, "chats", currentChatId, "messages"), {
+    text, uid: ME.uid, seen: false,
+    deleted: false, reply: replyMsg || null,
+    time: Date.now()
+  });
+
+  $("msgInput").value = "";
+  replyMsg = null;
+  $("replyBox").style.display = "none";
+};
+
+$("msgInput").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    $("sendBtn").click();
+  }
+});
+
+$("msgInput").oninput = () => {
+  if (currentChatId) {
+    setDoc(doc(db, "typing", currentChatId), { uid: ME.uid, time: Date.now() });
+  }
+};
+
+// ── Block / Unblock ────────────────────────────────────────────
+$("blockBtn").onclick = async () => {
+  if (!currentUser) return;
+  let blocked = myData.blocked || [];
+
+  if (blocked.includes(currentUser.uid)) {
+    blocked = blocked.filter(id => id !== currentUser.uid);
+    $("blockBtn").innerText = "Block";
+    showToast("✅ User unblocked");
+  } else {
+    blocked.push(currentUser.uid);
+    $("blockBtn").innerText = "Unblock";
+    showToast("🚷 User blocked");
+  }
+
+  myData.blocked = blocked;
+  await updateDoc(doc(db, "users", ME.uid), { blocked });
+};
+
+// ── Back Buttons ───────────────────────────────────────────────
+$("backBtn2").onclick = () => {
+  cleanupChatListeners();
+  currentChatId = null;
+  currentUser   = null;
+  show("homeScreen");
+};
+
+// ── Logout ─────────────────────────────────────────────────────
+$("logoutBtn").onclick = async () => {
+  cleanupChatListeners();
+  if (unsubChatList) unsubChatList();
+  if (ME) await updateDoc(doc(db, "users", ME.uid), { online: false, lastSeen: Date.now() });
+  await signOut(auth);
+  show("login");
+};
+
+// ── Reply Close ────────────────────────────────────────────────
+$("replyClose").onclick = () => {
+  replyMsg = null;
+  $("replyBox").style.display = "none";
+};
+
+// ── About Btn in Header ────────────────────────────────────────
+$("aboutHomeBtn").onclick = () => openAbout();
+
+// ── Escape HTML (XSS protection) ──────────────────────────────
+function escHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// ── Close modals on overlay click ────────────────────────────
+document.querySelectorAll(".modal-overlay").forEach(overlay => {
+  overlay.addEventListener("click", e => {
+    if (e.target === overlay) overlay.classList.remove("open");
+  });
+});
+</script>
+
+<!-- ── Modal helpers (global) ─────────────────────────────── -->
+<script>
+function openAbout()   { document.getElementById("aboutModal").classList.add("open"); }
+function openPrivacy() { document.getElementById("privacyModal").classList.add("open"); }
+function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+
+// Close modals with Escape key
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal-overlay.open")
+      .forEach(m => m.classList.remove("open"));
+  }
+});
+</script>
+
+</body>
+</html>
